@@ -1,0 +1,19 @@
+# ---- Build output ----
+bin/
+obj/
+*.user
+*.suo
+.vs/
+.vscode/
+.idea/
+.claude/
+
+# ---- Raw asset source folders (not used directly by game) ----
+kenney_*/
+Noto_Sans_TC/
+
+# ---- OS / editor noise ----
+Thumbs.db
+.DS_Store
+*.swp
+*~
