@@ -8,6 +8,8 @@ namespace KidsGame.Entities;
 
 public sealed class RescueEvent
 {
+    public const float InteractionPadding = 25f;
+
     public Vector2 Position { get; }
     public float Radius { get; } = 90f;
     public int RequiredHits { get; }
@@ -120,6 +122,11 @@ public sealed class RescueEvent
         if (!JustCompleted) return false;
         JustCompleted = false;
         return true;
+    }
+
+    public bool IsInInteractionRange(Vector2 point)
+    {
+        return Vector2.Distance(point, Position) <= Radius + InteractionPadding;
     }
 
     public void Draw(AssetManager assets, Font font, bool showProgress)

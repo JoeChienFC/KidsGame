@@ -49,7 +49,7 @@ public sealed class AudioManager : IDisposable
 
         _currentMusic = music.Value;
         _currentMusicName = name;
-        Raylib.SetMusicVolume(_currentMusic.Value, 0.6f);
+        Raylib.SetMusicVolume(_currentMusic.Value, 0.22f);
         Raylib.PlayMusicStream(_currentMusic.Value);
     }
 

@@ -35,6 +35,42 @@ public sealed class AssetManager : IDisposable
         ["progress_bar_bg"] = "assets/ui/progress_bar_bg.png",
         ["progress_bar_fill"] = "assets/ui/progress_bar_fill.png",
         ["celebration_banner"] = "assets/ui/celebration_banner.png",
+        ["sprite_princess"] = "assets/generated/sprites/princess.png",
+        ["sprite_prince_window"] = "assets/generated/sprites/prince_window.png",
+        ["sprite_castle"] = "assets/generated/sprites/castle.png",
+        ["sprite_cottage"] = "assets/generated/sprites/cottage.png",
+        ["sprite_cottage_damaged"] = "assets/generated/sprites/cottage_damaged.png",
+        ["sprite_cottage_broken"] = "assets/generated/sprites/cottage_broken.png",
+        ["sprite_witch"] = "assets/generated/sprites/witch.png",
+        ["sprite_girl"] = "assets/generated/sprites/girl.png",
+        ["sprite_apple"] = "assets/generated/sprites/apple.png",
+        ["sprite_carrot"] = "assets/generated/sprites/carrot.png",
+        ["sprite_dino_caged"] = "assets/generated/sprites/dino_caged.png",
+        ["sprite_dino_cracked"] = "assets/generated/sprites/dino_cracked.png",
+        ["sprite_poli"] = "assets/generated/sprites/poli.png",
+        ["sprite_amber"] = "assets/generated/sprites/amber.png",
+        ["sprite_helly"] = "assets/generated/sprites/helly.png",
+        ["sprite_roy"] = "assets/generated/sprites/roy.png",
+        ["sprite_dino_free"] = "assets/generated/sprites/dino_free.png",
+        ["sprite_cage_open"] = "assets/generated/sprites/cage_open.png",
+        ["sprite_witch_defeated"] = "assets/generated/sprites/witch_defeated.png",
+        ["sprite_girl_free"] = "assets/generated/sprites/girl_free.png",
+        ["sprite_castle_royal"] = "assets/generated/sprites/castle_royal.png",
+        ["sprite_castle_gate"] = "assets/generated/sprites/castle_gate.png",
+        ["sprite_royal_fountain"] = "assets/generated/sprites/royal_fountain.png",
+        ["sprite_garden_arch"] = "assets/generated/sprites/garden_arch.png",
+        ["sprite_forest_broadleaf"] = "assets/generated/sprites/forest_broadleaf.png",
+        ["sprite_forest_pine"] = "assets/generated/sprites/forest_pine.png",
+        ["sprite_forest_bush"] = "assets/generated/sprites/forest_bush.png",
+        ["sprite_forest_mushroom"] = "assets/generated/sprites/forest_mushroom.png",
+        ["sprite_forest_log"] = "assets/generated/sprites/forest_log.png",
+        ["sprite_forest_rocks"] = "assets/generated/sprites/forest_rocks.png",
+        ["sprite_forest_flowers"] = "assets/generated/sprites/forest_flowers.png",
+        ["sprite_forest_path"] = "assets/generated/sprites/forest_path.png",
+        ["sprite_robot_poli"] = "assets/generated/sprites/robot_poli.png",
+        ["sprite_robot_amber"] = "assets/generated/sprites/robot_amber.png",
+        ["sprite_robot_helly"] = "assets/generated/sprites/robot_helly.png",
+        ["sprite_robot_roy"] = "assets/generated/sprites/robot_roy.png",
     };
 
     private static readonly Dictionary<string, string> SoundPaths = new()
@@ -49,8 +85,8 @@ public sealed class AssetManager : IDisposable
 
     private static readonly Dictionary<string, string> MusicPaths = new()
     {
-        ["bgm_main"] = "assets/audio/bgm_main.ogg",
-        ["bgm_celebration"] = "assets/audio/bgm_celebration.ogg",
+        ["bgm_main"] = "assets/audio/bgm_main_soft.wav",
+        ["bgm_celebration"] = "assets/audio/bgm_celebration_soft.wav",
     };
 
     public void LoadAll()
@@ -215,7 +251,7 @@ public sealed class AssetManager : IDisposable
 
     private static int[] BuildCodepoints()
     {
-        const string text = "公主獨角獸與Poli救援隊按任意鍵開始方向鍵移動空白鍵幫忙水晶小動物已救了隻收集顆救援完成一起慶祝姐姐弟弟";
+        const string text = "一下主之也了以任伊住倒公出到力功動卡原反可吃向單回在地坑城基堡壓夕多夜大女好始姐婆子孩安完寶尋小巫已幫弟彩忙恐意慶應成或戲房手打找抓拆拯按掉揮援擇擋收救方星晶更會有木林果森樹氣水波滿物狗獨獸王球由白祝移空第籠繼續羅自與草菜虹被要角變貓赫起跟輪近連遊選還鍵鎮開關除陽隊隻集需青靠顆食麗點龍身：，·！/0123456789";
         return text.Distinct().Select(c => (int)c).Concat(Enumerable.Range(32, 95)).Distinct().ToArray();
     }
 

@@ -40,7 +40,7 @@ public sealed class Poli
 
         if (Raylib.IsKeyPressed(KeyboardKey.Space))
         {
-            var nearby = events.FirstOrDefault(e => !e.Completed && Vector2.Distance(e.Position, Position) <= e.Radius);
+            var nearby = events.FirstOrDefault(e => !e.Completed && e.IsInInteractionRange(Position));
             if (nearby is not null)
             {
                 nearby.OnHit(particles, audio);

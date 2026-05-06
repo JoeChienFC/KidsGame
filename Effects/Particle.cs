@@ -8,7 +8,10 @@ public enum ParticleType
     Rainbow,
     Heart,
     Star,
-    Firework
+    Firework,
+    Dust,
+    Sparkle,
+    Confetti,
 }
 
 public struct Particle
@@ -21,5 +24,8 @@ public struct Particle
     public float MaxLife;
     public float Size;
     public float Rotation;
+    public float Spin;
     public Color Color;
+    public float Gravity;
+    public float Drag;
 }

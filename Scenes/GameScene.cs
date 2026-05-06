@@ -226,7 +226,7 @@ public sealed class GameScene : IScene
         var font = _game.Assets.GetFont();
         foreach (var rescueEvent in _events)
         {
-            var near = Vector2.Distance(_poli.Position, rescueEvent.Position) <= rescueEvent.Radius + 25f;
+            var near = rescueEvent.IsInInteractionRange(_poli.Position);
             rescueEvent.Draw(_game.Assets, font, near);
         }
 

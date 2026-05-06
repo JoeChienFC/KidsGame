@@ -1,4 +1,6 @@
 using System.Numerics;
+using KidsGame.Effects;
+using KidsGame.Util;
 using Raylib_cs;
 
 namespace KidsGame.Scenes;
@@ -6,7 +8,12 @@ namespace KidsGame.Scenes;
 public sealed class TitleScene : IScene
 {
     private readonly Game _game;
+    private readonly ParticleSystem _particles = new();
+    private int _selectedMode;
     private float _time;
+    private float _ambientSparkleTimer;
+    private int _previousSelectedMode;
+    private float _selectionPulse;
 
     public TitleScene(Game game)
     {
@@ -17,104 +24,221 @@ public sealed class TitleScene : IScene
     public void Update(float dt)
     {
         _time += dt;
-        if (Raylib.GetKeyPressed() != 0 || Raylib.IsKeyPressed(KeyboardKey.Space))
+
+        if (Raylib.IsKeyPressed(KeyboardKey.Up) || Raylib.IsKeyPressed(KeyboardKey.Down))
         {
+            _selectedMode = 1 - _selectedMode;
             _game.Audio.Play("sfx_button");
-            _game.ChangeScene(new GameScene(_game));
         }
+
+        if (Raylib.IsKeyPressed(KeyboardKey.One) || Raylib.IsKeyPressed(KeyboardKey.Kp1))
+        {
+            StartMode(0);
+            return;
+        }
+
+        if (Raylib.IsKeyPressed(KeyboardKey.Two) || Raylib.IsKeyPressed(KeyboardKey.Kp2))
+        {
+            StartMode(1);
+            return;
+        }
+
+        if (Raylib.IsKeyPressed(KeyboardKey.Enter) || Raylib.IsKeyPressed(KeyboardKey.Space))
+        {
+            StartMode(_selectedMode);
+        }
+
+        if (_selectedMode != _previousSelectedMode)
+        {
+            _previousSelectedMode = _selectedMode;
+            _selectionPulse = 1f;
+        }
+        _selectionPulse = MathF.Max(0f, _selectionPulse - dt * 3f);
+
+        // Ambient floating sparkles across the whole title
+        _ambientSparkleTimer -= dt;
+        if (_ambientSparkleTimer <= 0f)
+        {
+            _ambientSparkleTimer = 0.12f;
+            var x = (float)Random.Shared.NextDouble() * Game.ScreenWidth;
+            var y = (float)Random.Shared.NextDouble() * (Game.ScreenHeight - 100);
+            _particles.EmitSparkle(new Vector2(x, y), 1);
+        }
+        _particles.Update(dt);
     }
 
     public void Draw()
     {
-        Raylib.ClearBackground(new Color(164, 222, 255, 255));
-        DrawMeadow();
+        DrawBackdrop();
+        _particles.Draw(_game.Assets);
 
         var font = _game.Assets.GetFont();
-        DrawCentered(font, "公主獨角獸與 Poli 救援隊", 116, 44, new Color(95, 58, 128, 255));
-        DrawCentered(font, "方向鍵移動  空白鍵幫忙救援", 188, 28, new Color(62, 91, 128, 255));
+        var titleBob = MathF.Sin(_time * 1.6f) * 4f;
+        DrawCentered(font, "公主與波麗救援隊", 68 + titleBob, 48, new Color(255, 255, 255, 120), new Vector2(2, 3));
+        DrawCentered(font, "公主與波麗救援隊", 66 + titleBob, 48, new Color(95, 58, 128, 255));
+        DrawCentered(font, "方向鍵選擇  Enter開始  也可以按1或2", 126, 24, new Color(62, 91, 128, 230));
 
-        var bob = MathF.Sin(_time * 3f) * 8f;
-        DrawTitleCharacters(new Vector2(500, 392 + bob), new Vector2(760, 410 - bob * 0.6f));
+        DrawModeCard(
+            index: 0,
+            rect: new Rectangle(92, 194, 500, 360),
+            title: "1 公主拯救遊戲",
+            subtitle: "吃水果青菜，拆掉巫婆房子救小女孩",
+            accent: new Color(255, 117, 186, 255));
 
-        var alpha = (byte)(130 + 90 * ((MathF.Sin(_time * 4f) + 1f) * 0.5f));
-        DrawCentered(font, "按任意鍵開始", 610, 30, new Color(80, 75, 118, (int)alpha));
+        DrawModeCard(
+            index: 1,
+            rect: new Rectangle(688, 194, 500, 360),
+            title: "2 波麗拯救恐龍",
+            subtitle: "波麗 赫麗 安寶 羅伊一起拆籠子",
+            accent: new Color(77, 167, 224, 255));
+
+        var pulse = (MathF.Sin(_time * 4f) + 1f) * 0.5f;
+        DrawCentered(font, "空白鍵連點也會有反應", 626, 24, new Color(80, 75, 118, (int)(145 + pulse * 80)));
+
+        DrawVignette();
     }
 
-    private static void DrawMeadow()
+    private void StartMode(int mode)
     {
+        _game.Audio.Play("sfx_button");
+        _game.ChangeScene(mode == 0 ? new PrincessRescueScene(_game) : new DinoRescueScene(_game));
+    }
+
+    private void DrawModeCard(int index, Rectangle rect, string title, string subtitle, Color accent)
+    {
+        var selected = _selectedMode == index;
+        var bobAmount = selected ? MathF.Sin(_time * 5f) * 4f - 5f : 0f;
+        // Pulse scale grows briefly when this card just got selected
+        var freshPulse = selected ? _selectionPulse : 0f;
+        var scaleBoost = 1f + freshPulse * 0.04f;
+        var scaledRect = new Rectangle(
+            rect.X - rect.Width * (scaleBoost - 1f) * 0.5f,
+            rect.Y + bobAmount - rect.Height * (scaleBoost - 1f) * 0.5f,
+            rect.Width * scaleBoost,
+            rect.Height * scaleBoost);
+
+        Raylib.DrawRectangleRounded(new Rectangle(scaledRect.X + 8, scaledRect.Y + 12, scaledRect.Width, scaledRect.Height), 0.08f, 14, new Color(66, 62, 88, 45));
+        Raylib.DrawRectangleRounded(scaledRect, 0.08f, 14, selected ? new Color(255, 255, 255, 245) : new Color(255, 255, 255, 218));
+        Raylib.DrawRectangleRounded(new Rectangle(scaledRect.X, scaledRect.Y, scaledRect.Width, 12), 0.08f, 14, new Color(accent.R, accent.G, accent.B, selected ? 230 : 150));
+        Raylib.DrawRectangleRoundedLines(scaledRect, 0.08f, 14, selected ? accent : new Color(180, 190, 205, 255));
+
+        // Glow halo behind selected card
+        if (selected)
+        {
+            var glowPulse = (MathF.Sin(_time * 3f) + 1f) * 0.5f;
+            var glowAlpha = (int)(40 + glowPulse * 30);
+            Raylib.DrawRectangleRounded(
+                new Rectangle(scaledRect.X - 12, scaledRect.Y - 12, scaledRect.Width + 24, scaledRect.Height + 24),
+                0.08f, 14,
+                new Color(accent.R, accent.G, accent.B, glowAlpha));
+        }
+
+        var font = _game.Assets.GetFont();
+        Raylib.DrawCircle((int)(scaledRect.X + 44), (int)(scaledRect.Y + 48), 18, accent);
+        Raylib.DrawTextEx(font, title, new Vector2(scaledRect.X + 76, scaledRect.Y + 28), 31, 1, new Color(65, 61, 93, 255));
+        Raylib.DrawTextEx(font, subtitle, new Vector2(scaledRect.X + 42, scaledRect.Y + 82), 20, 1, new Color(86, 95, 116, 230));
+
+        if (index == 0)
+        {
+            DrawModeOnePreview(rect, bobAmount);
+        }
+        else
+        {
+            DrawModeTwoPreview(rect, bobAmount);
+        }
+    }
+
+    private void DrawModeOnePreview(Rectangle rect, float lift)
+    {
+        var bob = MathF.Sin(_time * 3f) * 5f;
+        Raylib.DrawCircleV(new Vector2(rect.X + 258, rect.Y + 252 + lift), 160, new Color(255, 235, 180, 42));
+        GeneratedSprites.TryDraw(_game.Assets, RescueSprite.CastleRoyal, new Rectangle(rect.X + 246, rect.Y + 238 + lift, 190, 190), Color.White);
+        GeneratedSprites.TryDraw(_game.Assets, RescueSprite.PrinceWindow, new Rectangle(rect.X + 242, rect.Y + 168 + lift + bob, 102, 112), Color.White);
+        GeneratedSprites.TryDraw(_game.Assets, RescueSprite.Princess, new Rectangle(rect.X + 94, rect.Y + 244 + lift + bob, 118, 136), Color.White);
+        GeneratedSprites.TryDraw(_game.Assets, RescueSprite.Cottage, new Rectangle(rect.X + 392, rect.Y + 252 + lift, 182, 158), Color.White);
+        GeneratedSprites.TryDraw(_game.Assets, RescueSprite.Apple, new Rectangle(rect.X + 164, rect.Y + 322 + lift, 58, 58), Color.White);
+        GeneratedSprites.TryDraw(_game.Assets, RescueSprite.Carrot, new Rectangle(rect.X + 224, rect.Y + 324 + lift, 58, 58), Color.White);
+    }
+
+    private void DrawModeTwoPreview(Rectangle rect, float lift)
+    {
+        var bob = MathF.Sin(_time * 3f) * 5f;
+        Raylib.DrawCircleV(new Vector2(rect.X + 276, rect.Y + 252 + lift), 160, new Color(170, 225, 255, 55));
+        GeneratedSprites.TryDraw(_game.Assets, RescueSprite.RobotPoli, new Rectangle(rect.X + 92, rect.Y + 250 + lift + bob, 116, 126), Color.White);
+        GeneratedSprites.TryDraw(_game.Assets, RescueSprite.RobotHelly, new Rectangle(rect.X + 208, rect.Y + 206 + lift - bob, 112, 126), Color.White);
+        GeneratedSprites.TryDraw(_game.Assets, RescueSprite.RobotAmber, new Rectangle(rect.X + 190, rect.Y + 312 + lift + bob, 112, 126), Color.White);
+        GeneratedSprites.TryDraw(_game.Assets, RescueSprite.RobotRoy, new Rectangle(rect.X + 310, rect.Y + 292 + lift, 124, 136), Color.White);
+        GeneratedSprites.TryDraw(_game.Assets, RescueSprite.DinoCaged, new Rectangle(rect.X + 410, rect.Y + 242 + lift, 152, 166), Color.White);
+    }
+
+    private void DrawBackdrop()
+    {
+        for (var y = 0; y < 520; y += 8)
+        {
+            var t = y / 520f;
+            var color = new Color(
+                (int)(150 + t * 42),
+                (int)(220 + t * 12),
+                255,
+                255);
+            Raylib.DrawRectangle(0, y, Game.ScreenWidth, 8, color);
+        }
+
+        // Sun with gentle pulsing glow
+        var sunPulse = (MathF.Sin(_time * 2.2f) + 1f) * 0.5f;
+        Raylib.DrawCircle(1040, 112, 64f + sunPulse * 6f, new Color(255, 237, 128, 90));
+        Raylib.DrawCircle(1040, 112, 54, new Color(255, 237, 128, 180));
+        Raylib.DrawCircle(1040, 112, 36, new Color(255, 250, 190, 210));
+
+        // Drifting clouds — slow horizontal motion based on time
+        DrawDriftingCloud(180, 90, 0.55f, 0f);
+        DrawDriftingCloud(420, 60, 0.7f, 1.7f);
+        DrawDriftingCloud(740, 140, 0.5f, 3.4f);
+        DrawDriftingCloud(900, 80, 0.6f, 0.8f);
+
         Raylib.DrawRectangle(0, 520, Game.ScreenWidth, 220, new Color(119, 202, 126, 255));
+        Raylib.DrawRectangle(0, 510, Game.ScreenWidth, 22, new Color(133, 214, 135, 255));
         for (var i = 0; i < 18; i++)
         {
             var x = 40 + i * 76;
             var y = 545 + (i % 4) * 30;
-            Raylib.DrawCircle(x, y, 18, new Color(255, 232, 91, 255));
-            Raylib.DrawCircle(x - 7, y - 2, 7, Color.White);
-            Raylib.DrawCircle(x + 7, y - 2, 7, Color.White);
+            var bob = (int)(MathF.Sin(_time * 2f + i * 0.6f) * 1.2f);
+            Raylib.DrawCircle(x, y + bob, 18, new Color(255, 232, 91, 255));
+            Raylib.DrawCircle(x - 7, y - 2 + bob, 7, Color.White);
+            Raylib.DrawCircle(x + 7, y - 2 + bob, 7, Color.White);
         }
     }
 
-    private void DrawCentered(Font font, string text, float y, float size, Color color)
+    private void DrawDriftingCloud(float baseX, float y, float scale, float phase)
+    {
+        var x = baseX + ((_time * 14f + phase * 100f) % (Game.ScreenWidth + 200)) - 100;
+        var puff = new Color(255, 255, 255, 220);
+        var s = scale;
+        Raylib.DrawCircleV(new Vector2(x - 30 * s, y + 4 * s), 18 * s, new Color(220, 235, 250, 165));
+        Raylib.DrawCircleV(new Vector2(x + 28 * s, y + 6 * s), 16 * s, new Color(220, 235, 250, 165));
+        Raylib.DrawCircleV(new Vector2(x - 24 * s, y - 6 * s), 22 * s, puff);
+        Raylib.DrawCircleV(new Vector2(x, y - 12 * s), 26 * s, puff);
+        Raylib.DrawCircleV(new Vector2(x + 24 * s, y - 4 * s), 22 * s, puff);
+        Raylib.DrawCircleV(new Vector2(x - 4 * s, y), 24 * s, puff);
+    }
+
+    private static void DrawVignette()
+    {
+        const int edge = 70;
+        Raylib.DrawRectangleGradientV(0, 0, Game.ScreenWidth, edge, new Color(0, 0, 0, 50), new Color(0, 0, 0, 0));
+        Raylib.DrawRectangleGradientV(0, Game.ScreenHeight - edge, Game.ScreenWidth, edge, new Color(0, 0, 0, 0), new Color(0, 0, 0, 60));
+        Raylib.DrawRectangleGradientH(0, 0, edge, Game.ScreenHeight, new Color(0, 0, 0, 50), new Color(0, 0, 0, 0));
+        Raylib.DrawRectangleGradientH(Game.ScreenWidth - edge, 0, edge, Game.ScreenHeight, new Color(0, 0, 0, 0), new Color(0, 0, 0, 50));
+    }
+
+    private static void DrawCentered(Font font, string text, float y, float size, Color color)
+    {
+        DrawCentered(font, text, y, size, color, Vector2.Zero);
+    }
+
+    private static void DrawCentered(Font font, string text, float y, float size, Color color, Vector2 offset)
     {
         var measured = Raylib.MeasureTextEx(font, text, size, 1);
-        Raylib.DrawTextEx(font, text, new Vector2((Game.ScreenWidth - measured.X) / 2f, y), size, 1, color);
-    }
-
-    private void DrawTitleCharacters(Vector2 unicornPosition, Vector2 poliPosition)
-    {
-        var unicorn = _game.Assets.FindTexture("unicorn");
-        if (unicorn.HasValue)
-        {
-            DrawSheetFrame(unicorn.Value, 1, unicornPosition, 160);
-            var princess = _game.Assets.FindTexture("princess_overlay");
-            if (princess.HasValue)
-            {
-                DrawSheetFrame(princess.Value, 1, unicornPosition + new Vector2(0, -64), 86);
-            }
-        }
-        else
-        {
-            DrawTitleUnicorn(unicornPosition);
-        }
-
-        var poli = _game.Assets.FindTexture("poli");
-        if (poli.HasValue)
-        {
-            DrawSheetFrame(poli.Value, 0, poliPosition, 126);
-        }
-        else
-        {
-            DrawTitlePoli(poliPosition);
-        }
-    }
-
-    private static void DrawSheetFrame(Texture2D texture, int frame, Vector2 position, float size)
-    {
-        var frameWidth = texture.Width / 4;
-        var source = new Rectangle(frame * frameWidth, 0, frameWidth, texture.Height);
-        var dest = new Rectangle(position.X, position.Y, size, size);
-        Raylib.DrawTexturePro(texture, source, dest, new Vector2(size / 2f), 0, Color.White);
-    }
-
-    private static void DrawTitleUnicorn(Vector2 position)
-    {
-        Raylib.DrawEllipse((int)position.X, (int)position.Y, 72, 42, new Color(245, 245, 255, 255));
-        Raylib.DrawCircleV(position + new Vector2(58, -34), 34, new Color(255, 248, 254, 255));
-        Raylib.DrawTriangle(position + new Vector2(72, -78), position + new Vector2(55, -44), position + new Vector2(86, -45), new Color(255, 222, 82, 255));
-        Raylib.DrawCircleV(position + new Vector2(-58, -38), 18, new Color(255, 117, 186, 255));
-        Raylib.DrawCircleV(position + new Vector2(-76, -18), 18, new Color(255, 201, 83, 255));
-        Raylib.DrawCircleV(position + new Vector2(-58, 2), 18, new Color(94, 198, 255, 255));
-        Raylib.DrawRectangle((int)position.X + 22, (int)position.Y - 96, 70, 18, new Color(255, 153, 211, 255));
-        Raylib.DrawTriangle(position + new Vector2(25, -96), position + new Vector2(38, -128), position + new Vector2(51, -96), new Color(255, 226, 82, 255));
-        Raylib.DrawTriangle(position + new Vector2(53, -96), position + new Vector2(66, -133), position + new Vector2(79, -96), new Color(255, 226, 82, 255));
-    }
-
-    private static void DrawTitlePoli(Vector2 position)
-    {
-        Raylib.DrawRectangleRounded(new Rectangle(position.X - 58, position.Y - 34, 116, 78), 0.35f, 10, new Color(50, 130, 231, 255));
-        Raylib.DrawRectangleRounded(new Rectangle(position.X - 33, position.Y - 26, 66, 40), 0.4f, 10, new Color(173, 226, 255, 255));
-        Raylib.DrawCircleV(position + new Vector2(-43, 42), 14, Color.Black);
-        Raylib.DrawCircleV(position + new Vector2(43, 42), 14, Color.Black);
-        Raylib.DrawCircleV(position + new Vector2(0, -42), 13, Color.Red);
-        Raylib.DrawRectangle((int)position.X - 25, (int)position.Y + 47, 50, 12, Color.White);
+        Raylib.DrawTextEx(font, text, new Vector2((Game.ScreenWidth - measured.X) / 2f, y) + offset, size, 1, color);
     }
 }
