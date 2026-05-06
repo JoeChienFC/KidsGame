@@ -7,6 +7,8 @@ namespace KidsGame.Entities;
 
 public sealed class Crystal
 {
+    private static readonly Random Random = new();
+
     public Vector2 Position { get; }
     public bool Collected { get; private set; }
 
@@ -26,7 +28,7 @@ public sealed class Crystal
         _twinkleTimer -= dt;
         if (_twinkleTimer <= 0f)
         {
-            _twinkleTimer = 1.4f + (float)(new Random().NextDouble() * 0.8);
+            _twinkleTimer = 1.4f + Random.NextSingle() * 0.8f;
             particles.EmitStars(Position + new Vector2(0, -4), 1);
         }
     }

@@ -1,6 +1,7 @@
 using System.Numerics;
 using KidsGame.Assets;
 using KidsGame.Effects;
+using KidsGame.Util;
 using Raylib_cs;
 
 namespace KidsGame.Scenes;
@@ -10,15 +11,19 @@ public sealed class CelebrationScene : IScene
     private readonly Game _game;
     private readonly ParticleSystem _particles = new();
     private readonly int _collectedCrystals;
+    private readonly int _round;
+    private readonly Theme _nextTheme;
     private float _time;
     private float _fireworkTimer;
     private float _confettiTimer;
     private readonly Random _rand = new();
 
-    public CelebrationScene(Game game, int collectedCrystals)
+    public CelebrationScene(Game game, int collectedCrystals, int round)
     {
         _game = game;
         _collectedCrystals = collectedCrystals;
+        _round = round;
+        _nextTheme = Theme.ForRound(round + 1);
         _game.Audio.PlayMusic("bgm_celebration");
         _game.Audio.Play("sfx_rescue_complete");
     }
@@ -49,13 +54,17 @@ public sealed class CelebrationScene : IScene
 
         if (_time >= 5f)
         {
-            _game.ChangeScene(new TitleScene(_game));
+            _game.ChangeScene(new GameScene(_game, _round + 1));
+        }
+        else if (Raylib.GetKeyPressed() != 0)
+        {
+            // skip celebration early
+            _game.ChangeScene(new GameScene(_game, _round + 1));
         }
     }
 
     public void Draw()
     {
-        // animated rainbow gradient bg
         var bgT = _time * 0.4f;
         var rTop = (byte)(140 + 80 * MathF.Sin(bgT));
         var gTop = (byte)(180 + 50 * MathF.Sin(bgT + 1.7f));
@@ -68,7 +77,6 @@ public sealed class CelebrationScene : IScene
             Raylib.DrawCircle(80 + i * 160, (int)(110 + (i % 2) * 35 + bob), 42, new Color(255, 255, 255, 110));
         }
 
-        // rainbow ribbon at top
         var ribbonColors = new[]
         {
             new Color(255, 102, 102, 255),
@@ -86,18 +94,15 @@ public sealed class CelebrationScene : IScene
         _particles.Draw(_game.Assets);
 
         var font = _game.Assets.GetFont();
-        DrawTitleText(font, "救援完成，一起慶祝!", 80, 56, new Color(255, 255, 255, 255));
+        DrawTitleText(font, $"第 {_round} 輪救援完成!", 80, 56, new Color(255, 255, 255, 255));
         DrawCentered(font, $"救了 3 隻小動物，收集了 {_collectedCrystals} 顆水晶", 158, 30, new Color(255, 248, 193, 255));
 
         DrawDancingAnimal(_game.Assets, "kitten", new Vector2(380, 460), 0f, new Color(255, 177, 73, 255));
         DrawDancingAnimal(_game.Assets, "puppy", new Vector2(640, 480), 1.1f, new Color(176, 117, 67, 255));
         DrawDancingAnimal(_game.Assets, "bunny", new Vector2(900, 460), 2.2f, new Color(245, 245, 245, 255));
 
-        DrawCentered(font, "按任意鍵再玩一次", 640, 26, new Color(80, 50, 100, 240));
-        if (Raylib.GetKeyPressed() != 0)
-        {
-            _game.ChangeScene(new TitleScene(_game));
-        }
+        DrawCentered(font, $"下一輪：{_nextTheme.Name}", 612, 28, new Color(80, 50, 100, 240));
+        DrawCentered(font, "按任意鍵繼續", 648, 24, new Color(80, 50, 100, 200));
     }
 
     private void DrawDancingAnimal(AssetManager assets, string name, Vector2 position, float phase, Color fallback)
@@ -106,10 +111,8 @@ public sealed class CelebrationScene : IScene
         var sway = MathF.Sin(_time * 3f + phase) * 6f;
         var pos = position + new Vector2(sway, -jump);
 
-        // ground shadow
         Raylib.DrawEllipse((int)position.X, (int)(position.Y + 60), 50, 10, new Color(0, 0, 0, 80));
 
-        // sparkle ring
         var ringPulse = (MathF.Sin(_time * 4f + phase) + 1f) * 0.5f;
         Raylib.DrawCircleV(pos + new Vector2(0, 30), 60f + ringPulse * 8f, new Color(255, 255, 255, 50));
 
@@ -130,7 +133,6 @@ public sealed class CelebrationScene : IScene
             Raylib.DrawLineEx(pos + new Vector2(-14, 18), pos + new Vector2(14, 18), 5, new Color(90, 58, 86, 255));
         }
 
-        // floating heart above
         var heartY = pos.Y - 70 + MathF.Sin(_time * 3f + phase) * 6f;
         DrawHeart(new Vector2(pos.X, heartY), 8 + ringPulse * 3, new Color(255, 105, 180, 255));
     }
