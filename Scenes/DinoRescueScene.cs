@@ -29,7 +29,7 @@ public sealed class DinoRescueScene : IScene
         }
     }
 
-    private const int RequiredHits = 45;
+    private static readonly int[] RequiredHitsByStage = [45, 68, 90, 108, 124];
     private readonly Game _game;
     private readonly ParticleSystem _particles = new();
     private readonly FloatingTextSystem _floatingTexts = new();
@@ -38,6 +38,7 @@ public sealed class DinoRescueScene : IScene
     private readonly Cloud[] _clouds;
 
     private float _time;
+    private int _stage;
     private int _hits;
     private bool _complete;
     private float _hitShake;
@@ -106,9 +107,22 @@ public sealed class DinoRescueScene : IScene
                 _particles.EmitConfetti(new Vector2(x, -10), 1);
             }
 
+            if (HasNextStage && _completeTimer > 2.6f)
+            {
+                StartNextStage();
+                return;
+            }
+
             if (_completeTimer > 0.6f && Raylib.GetKeyPressed() != 0)
             {
-                _game.ChangeScene(new TitleScene(_game));
+                if (HasNextStage)
+                {
+                    StartNextStage();
+                }
+                else
+                {
+                    _game.ChangeScene(new TitleScene(_game));
+                }
             }
             return;
         }
@@ -195,7 +209,7 @@ public sealed class DinoRescueScene : IScene
             _flashAmount = 0.4f;
         }
 
-        if (_hits >= RequiredHits)
+        if (_hits >= CurrentRequiredHits)
         {
             _complete = true;
             _completeTimer = 0f;
@@ -204,7 +218,7 @@ public sealed class DinoRescueScene : IScene
             _particles.EmitHearts(_cagePosition + new Vector2(0, -28), 50);
             _particles.EmitStars(_cagePosition, 46);
             _particles.EmitConfetti(_cagePosition + new Vector2(0, -40), 36);
-            _floatingTexts.Spawn("恐龍自由了!", _cagePosition + new Vector2(0, -170), new Color(255, 90, 160, 255), 46f, 2.0f);
+            _floatingTexts.Spawn($"{CurrentDinoName}自由了!", _cagePosition + new Vector2(0, -170), new Color(255, 90, 160, 255), 46f, 2.0f);
             _zoomPunch = 1f;
             _slowMoTimer = 0.55f;
             _globalShake = 14f;
@@ -212,17 +226,77 @@ public sealed class DinoRescueScene : IScene
         }
     }
 
-    private float Progress => Math.Clamp(_hits / (float)RequiredHits, 0f, 1f);
+    private int CurrentRequiredHits => RequiredHitsByStage[_stage];
+
+    private bool HasNextStage => _stage < RequiredHitsByStage.Length - 1;
+
+    private string CurrentDinoName => _stage switch
+    {
+        0 => "恐龍",
+        1 => "冠龍",
+        2 => "劍龍",
+        3 => "腕龍",
+        _ => "翼龍",
+    };
+
+    private string NextDinoName => Math.Min(_stage + 1, RequiredHitsByStage.Length - 1) switch
+    {
+        1 => "冠龍",
+        2 => "劍龍",
+        3 => "腕龍",
+        _ => "翼龍",
+    };
+
+    private string CurrentStageLabel => _stage switch
+    {
+        0 => "第一關",
+        1 => "第二關",
+        2 => "第三關",
+        3 => "第四關",
+        _ => "第五關",
+    };
+
+    private string CurrentBackgroundKey => _stage switch
+    {
+        0 => "bg_dino_stage_meadow",
+        1 => "bg_dino_stage_jungle",
+        2 => "bg_dino_stage_valley",
+        3 => "bg_dino_stage_jungle",
+        _ => "bg_dino_stage_valley",
+    };
+
+    private float Progress => Math.Clamp(_hits / (float)CurrentRequiredHits, 0f, 1f);
+
+    private void StartNextStage()
+    {
+        if (!HasNextStage) return;
+
+        _stage++;
+        _hits = 0;
+        _complete = false;
+        _completeTimer = 0f;
+        _hitShake = 0f;
+        _hitAnimTimer = 0f;
+        _transformTimer = 0.7f;
+        _zoomPunch = 0.8f;
+        _globalShake = 8f;
+        _flashAmount = 0.75f;
+        _slowMoTimer = 0.35f;
+        _game.Audio.Play("sfx_rescue_complete");
+        _particles.EmitFirework(_cagePosition, 36);
+        _particles.EmitStars(_cagePosition + new Vector2(0, -80), 24);
+        _floatingTexts.Spawn($"{CurrentStageLabel}：拯救{CurrentDinoName}!", _cagePosition + new Vector2(0, -170), new Color(255, 90, 160, 255), 42f, 2.2f);
+    }
 
     private void DrawMap()
     {
-        Raylib.DrawRectangle(0, 0, Game.ScreenWidth, Game.ScreenHeight, new Color(126, 205, 134, 255));
-        Raylib.DrawRectangle(0, 0, 500, Game.ScreenHeight, new Color(185, 230, 255, 255));
-        Raylib.DrawRectangleRounded(new Rectangle(36, 86, 418, 538), 0.06f, 12, new Color(255, 255, 255, 132));
-        Raylib.DrawRectangleRoundedLines(new Rectangle(36, 86, 418, 538), 0.06f, 12, new Color(104, 168, 207, 150));
-        Raylib.DrawRectangleRounded(new Rectangle(535, 128, 682, 442), 0.08f, 14, new Color(255, 255, 255, 60));
-        Raylib.DrawRectangleRounded(new Rectangle(562, 156, 625, 370), 0.08f, 14, new Color(112, 198, 124, 255));
-        Raylib.DrawRectangleRounded(new Rectangle(622, 520, 480, 78), 0.35f, 18, new Color(207, 181, 119, 255));
+        DrawStageBackground();
+        Raylib.DrawRectangle(0, 0, 500, Game.ScreenHeight, new Color(185, 230, 255, 226));
+        Raylib.DrawRectangleRounded(new Rectangle(36, 86, 418, 538), 0.06f, 12, new Color(255, 255, 255, 150));
+        Raylib.DrawRectangleRoundedLines(new Rectangle(36, 86, 418, 538), 0.06f, 12, new Color(104, 168, 207, 172));
+        Raylib.DrawRectangleRounded(new Rectangle(535, 128, 682, 442), 0.08f, 14, new Color(255, 255, 255, 74));
+        Raylib.DrawRectangleRounded(new Rectangle(562, 156, 625, 370), 0.08f, 14, new Color(112, 198, 124, 172));
+        Raylib.DrawRectangleRounded(new Rectangle(622, 520, 480, 78), 0.35f, 18, new Color(207, 181, 119, 230));
         Raylib.DrawRectangleRoundedLines(new Rectangle(622, 520, 480, 78), 0.35f, 18, new Color(175, 146, 91, 220));
 
         for (var i = 0; i < 18; i++)
@@ -235,7 +309,27 @@ public sealed class DinoRescueScene : IScene
 
         var font = _game.Assets.GetFont();
         Raylib.DrawTextEx(font, "救援基地", new Vector2(74, 74), 30, 1, new Color(45, 87, 120, 255));
-        Raylib.DrawTextEx(font, "恐龍被籠子關住了", new Vector2(792, 56), 30, 1, new Color(66, 88, 75, 255));
+        var stageTitle = $"{CurrentStageLabel}：{CurrentDinoName}被籠子關住了";
+        Raylib.DrawTextEx(font, stageTitle, new Vector2(742, 56), 30, 1, new Color(66, 88, 75, 255));
+    }
+
+    private void DrawStageBackground()
+    {
+        var texture = _game.Assets.FindTexture(CurrentBackgroundKey);
+        if (texture.HasValue)
+        {
+            Raylib.DrawTexturePro(
+                texture.Value,
+                new Rectangle(0, 0, texture.Value.Width, texture.Value.Height),
+                new Rectangle(0, 0, Game.ScreenWidth, Game.ScreenHeight),
+                Vector2.Zero,
+                0,
+                Color.White);
+            Raylib.DrawRectangle(0, 0, Game.ScreenWidth, Game.ScreenHeight, new Color(255, 255, 255, 26));
+            return;
+        }
+
+        Raylib.DrawRectangle(0, 0, Game.ScreenWidth, Game.ScreenHeight, new Color(126, 205, 134, 255));
     }
 
     private void DrawDinoEvent()
@@ -249,13 +343,13 @@ public sealed class DinoRescueScene : IScene
         if (_complete)
         {
             var bob = MathF.Sin(_time * 5f) * 7f;
-            GeneratedSprites.TryDrawFinal(_game.Assets, FinalSprite.CageOpen, new Rectangle(_cagePosition.X + 46, _cagePosition.Y + 34, 245, 245), Color.White);
-            GeneratedSprites.TryDrawFinal(_game.Assets, FinalSprite.DinoFree, new Rectangle(_cagePosition.X - 128, _cagePosition.Y + 28 + bob, 192, 192), Color.White, MathF.Sin(_time * 5f) * 2f);
+            GeneratedSprites.TryDrawFinal(_game.Assets, FinalSprite.CageOpen, CurrentOpenCageBox(), Color.White);
+            DrawCurrentFreeDino(CurrentFreeDinoBox(bob), MathF.Sin(_time * 5f) * 2f);
             return;
         }
 
-        var sprite = Progress >= 0.5f ? RescueSprite.DinoCracked : RescueSprite.DinoCaged;
-        GeneratedSprites.TryDraw(_game.Assets, sprite, new Rectangle(_cagePosition.X + shake.X, _cagePosition.Y + shake.Y - impactPulse * 6f, 245 + impactPulse * 14f, 245 + impactPulse * 12f), Color.White, shake.X * 0.05f);
+        var sprite = Progress >= 0.5f ? CurrentCrackedDinoSprite : CurrentCagedDinoSprite;
+        GeneratedSprites.TryDraw(_game.Assets, sprite, CurrentCagedDinoBox(shake, impactPulse), Color.White, shake.X * 0.05f);
         DrawCageDamage(impactPulse);
 
         if (_hits > 0)
@@ -267,6 +361,75 @@ public sealed class DinoRescueScene : IScene
                 Raylib.DrawCircleV(p, 5f + MathF.Sin(_time * 8f + i) * 2f, new Color(255, 226, 82, 210));
             }
         }
+    }
+
+    private RescueSprite CurrentCagedDinoSprite => _stage switch
+    {
+        0 => RescueSprite.DinoCaged,
+        1 => RescueSprite.CrestedDinoCaged,
+        2 => RescueSprite.StegoDinoCaged,
+        3 => RescueSprite.BrachioDinoCaged,
+        _ => RescueSprite.PteroDinoCaged,
+    };
+
+    private RescueSprite CurrentCrackedDinoSprite => _stage switch
+    {
+        0 => RescueSprite.DinoCracked,
+        1 => RescueSprite.CrestedDinoCracked,
+        2 => RescueSprite.StegoDinoCracked,
+        3 => RescueSprite.BrachioDinoCracked,
+        _ => RescueSprite.PteroDinoCracked,
+    };
+
+    private Rectangle CurrentCagedDinoBox(Vector2 shake, float impactPulse)
+    {
+        var baseSize = _stage switch
+        {
+            3 => 318f,
+            4 => 300f,
+            2 => 260f,
+            _ => 245f,
+        };
+        return new Rectangle(
+            _cagePosition.X + shake.X,
+            _cagePosition.Y + shake.Y - impactPulse * 6f,
+            baseSize + impactPulse * 14f,
+            baseSize + impactPulse * 12f);
+    }
+
+    private Rectangle CurrentOpenCageBox()
+    {
+        var size = _stage >= 3 ? 282f : 245f;
+        return new Rectangle(_cagePosition.X + 46, _cagePosition.Y + 34, size, size);
+    }
+
+    private Rectangle CurrentFreeDinoBox(float bob)
+    {
+        return _stage switch
+        {
+            3 => new Rectangle(_cagePosition.X - 96, _cagePosition.Y + 6 + bob, 318, 330),
+            4 => new Rectangle(_cagePosition.X - 94, _cagePosition.Y - 28 + bob, 352, 230),
+            0 => new Rectangle(_cagePosition.X - 128, _cagePosition.Y + 28 + bob, 192, 192),
+            _ => new Rectangle(_cagePosition.X - 128, _cagePosition.Y + 28 + bob, 206, 206),
+        };
+    }
+
+    private void DrawCurrentFreeDino(Rectangle rect, float rotation)
+    {
+        if (_stage == 0)
+        {
+            GeneratedSprites.TryDrawFinal(_game.Assets, FinalSprite.DinoFree, rect, Color.White, rotation);
+            return;
+        }
+
+        var sprite = _stage switch
+        {
+            1 => RescueSprite.CrestedDinoFree,
+            2 => RescueSprite.StegoDinoFree,
+            3 => RescueSprite.BrachioDinoFree,
+            _ => RescueSprite.PteroDinoFree,
+        };
+        GeneratedSprites.TryDraw(_game.Assets, sprite, rect, Color.White, rotation);
     }
 
     private void DrawCageDamage(float impactPulse)
@@ -383,13 +546,13 @@ public sealed class DinoRescueScene : IScene
     private void DrawHud()
     {
         var font = _game.Assets.GetFont();
-        DrawPill(new Rectangle(24, 22, 240, 46), $"拆籠子 {_hits} / {RequiredHits}", new Color(77, 167, 224, 255));
+        DrawPill(new Rectangle(24, 22, 260, 46), $"拆籠子 {_hits} / {CurrentRequiredHits}", new Color(77, 167, 224, 255));
 
         DrawProgressBar(new Rectangle(760, 650, 360, 22));
 
         var tip = _complete
-            ? "恐龍自由了! 按任意鍵回選單"
-            : "連點空白鍵，波麗 赫麗 安寶 羅伊一起拆籠子";
+            ? (HasNextStage ? $"{CurrentDinoName}自由了! 下一關救{NextDinoName}" : $"{CurrentDinoName}自由了! 按任意鍵回選單")
+            : $"連點空白鍵，波麗 赫麗 安寶 羅伊一起救{CurrentDinoName}";
         var measured = Raylib.MeasureTextEx(font, tip, 24, 1);
         Raylib.DrawTextEx(font, tip, new Vector2((Game.ScreenWidth - measured.X) / 2f, Game.ScreenHeight - 44), 24, 1, new Color(60, 85, 100, 230));
     }

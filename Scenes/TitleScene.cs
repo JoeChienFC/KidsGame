@@ -82,14 +82,14 @@ public sealed class TitleScene : IScene
             index: 0,
             rect: new Rectangle(92, 194, 500, 360),
             title: "1 公主拯救遊戲",
-            subtitle: "吃水果青菜，拆掉巫婆房子救小女孩",
+            subtitle: "三關公主魔法，最後裝扮獨角獸",
             accent: new Color(255, 117, 186, 255));
 
         DrawModeCard(
             index: 1,
             rect: new Rectangle(688, 194, 500, 360),
             title: "2 波麗拯救恐龍",
-            subtitle: "波麗 赫麗 安寶 羅伊一起拆籠子",
+            subtitle: "五關恐龍救援，一起拆籠子",
             accent: new Color(77, 167, 224, 255));
 
         var pulse = (MathF.Sin(_time * 4f) + 1f) * 0.5f;
@@ -155,9 +155,14 @@ public sealed class TitleScene : IScene
         GeneratedSprites.TryDraw(_game.Assets, RescueSprite.CastleRoyal, new Rectangle(rect.X + 246, rect.Y + 238 + lift, 190, 190), Color.White);
         GeneratedSprites.TryDraw(_game.Assets, RescueSprite.PrinceWindow, new Rectangle(rect.X + 242, rect.Y + 168 + lift + bob, 102, 112), Color.White);
         GeneratedSprites.TryDraw(_game.Assets, RescueSprite.Princess, new Rectangle(rect.X + 94, rect.Y + 244 + lift + bob, 118, 136), Color.White);
+        GeneratedSprites.TryDraw(_game.Assets, RescueSprite.PrincessMermaid, new Rectangle(rect.X + 54, rect.Y + 342 + lift - bob * 0.4f, 72, 82), Color.White);
+        GeneratedSprites.TryDraw(_game.Assets, RescueSprite.PrincessIce, new Rectangle(rect.X + 136, rect.Y + 350 + lift + bob * 0.35f, 72, 82), Color.White);
+        GeneratedSprites.TryDraw(_game.Assets, RescueSprite.PrincessRapunzel, new Rectangle(rect.X + 222, rect.Y + 356 + lift - bob * 0.25f, 72, 82), Color.White);
         GeneratedSprites.TryDraw(_game.Assets, RescueSprite.Cottage, new Rectangle(rect.X + 392, rect.Y + 252 + lift, 182, 158), Color.White);
         GeneratedSprites.TryDraw(_game.Assets, RescueSprite.Apple, new Rectangle(rect.X + 164, rect.Y + 322 + lift, 58, 58), Color.White);
         GeneratedSprites.TryDraw(_game.Assets, RescueSprite.Carrot, new Rectangle(rect.X + 224, rect.Y + 324 + lift, 58, 58), Color.White);
+        DrawPreviewTexture("magic_orb_pink", new Rectangle(rect.X + 374, rect.Y + 382 + lift + bob * 0.2f, 54, 60));
+        DrawPreviewTexture("unicorn_crown", new Rectangle(rect.X + 446, rect.Y + 380 + lift - bob * 0.2f, 70, 48));
     }
 
     private void DrawModeTwoPreview(Rectangle rect, float lift)
@@ -168,7 +173,27 @@ public sealed class TitleScene : IScene
         GeneratedSprites.TryDraw(_game.Assets, RescueSprite.RobotHelly, new Rectangle(rect.X + 208, rect.Y + 206 + lift - bob, 112, 126), Color.White);
         GeneratedSprites.TryDraw(_game.Assets, RescueSprite.RobotAmber, new Rectangle(rect.X + 190, rect.Y + 312 + lift + bob, 112, 126), Color.White);
         GeneratedSprites.TryDraw(_game.Assets, RescueSprite.RobotRoy, new Rectangle(rect.X + 310, rect.Y + 292 + lift, 124, 136), Color.White);
-        GeneratedSprites.TryDraw(_game.Assets, RescueSprite.DinoCaged, new Rectangle(rect.X + 410, rect.Y + 242 + lift, 152, 166), Color.White);
+        GeneratedSprites.TryDraw(_game.Assets, RescueSprite.DinoCaged, new Rectangle(rect.X + 398, rect.Y + 230 + lift, 130, 142), Color.White);
+        GeneratedSprites.TryDraw(_game.Assets, RescueSprite.StegoDinoCaged, new Rectangle(rect.X + 436, rect.Y + 306 + lift - bob * 0.35f, 126, 142), Color.White);
+        GeneratedSprites.TryDraw(_game.Assets, RescueSprite.BrachioDinoCaged, new Rectangle(rect.X + 380, rect.Y + 334 + lift + bob * 0.2f, 118, 128), Color.White);
+        GeneratedSprites.TryDraw(_game.Assets, RescueSprite.PteroDinoCaged, new Rectangle(rect.X + 500, rect.Y + 350 + lift - bob * 0.2f, 106, 116), Color.White);
+    }
+
+    private void DrawPreviewTexture(string textureName, Rectangle box)
+    {
+        var texture = _game.Assets.FindTexture(textureName);
+        if (!texture.HasValue) return;
+
+        var scale = MathF.Min(box.Width / texture.Value.Width, box.Height / texture.Value.Height);
+        var width = texture.Value.Width * scale;
+        var height = texture.Value.Height * scale;
+        Raylib.DrawTexturePro(
+            texture.Value,
+            new Rectangle(0, 0, texture.Value.Width, texture.Value.Height),
+            new Rectangle(box.X, box.Y, width, height),
+            new Vector2(width / 2f, height / 2f),
+            0,
+            Color.White);
     }
 
     private void DrawBackdrop()

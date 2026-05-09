@@ -71,6 +71,43 @@ public sealed class AssetManager : IDisposable
         ["sprite_robot_amber"] = "assets/generated/sprites/robot_amber.png",
         ["sprite_robot_helly"] = "assets/generated/sprites/robot_helly.png",
         ["sprite_robot_roy"] = "assets/generated/sprites/robot_roy.png",
+        ["sprite_princess_blue"] = "assets/generated/sprites/princess_blue.png",
+        ["sprite_princess_yellow"] = "assets/generated/sprites/princess_yellow.png",
+        ["sprite_princess_purple"] = "assets/generated/sprites/princess_purple.png",
+        ["sprite_princess_caged"] = "assets/generated/sprites/princess_caged.png",
+        ["sprite_princess_free"] = "assets/generated/sprites/princess_free.png",
+        ["sprite_princess_friends"] = "assets/generated/sprites/princess_friends.png",
+        ["sprite_princess_mermaid"] = "assets/generated/sprites/princess_mermaid.png",
+        ["sprite_princess_ice"] = "assets/generated/sprites/princess_ice.png",
+        ["sprite_princess_snow"] = "assets/generated/sprites/princess_snow.png",
+        ["sprite_princess_cinderella"] = "assets/generated/sprites/princess_cinderella.png",
+        ["sprite_princess_rapunzel"] = "assets/generated/sprites/princess_rapunzel.png",
+        ["sprite_princess_rose"] = "assets/generated/sprites/princess_rose.png",
+        ["sprite_crested_dino_caged"] = "assets/generated/sprites/crested_dino_caged.png",
+        ["sprite_crested_dino_cracked"] = "assets/generated/sprites/crested_dino_cracked.png",
+        ["sprite_crested_dino_free"] = "assets/generated/sprites/crested_dino_free.png",
+        ["sprite_stego_dino_caged"] = "assets/generated/sprites/stego_dino_caged.png",
+        ["sprite_stego_dino_cracked"] = "assets/generated/sprites/stego_dino_cracked.png",
+        ["sprite_stego_dino_free"] = "assets/generated/sprites/stego_dino_free.png",
+        ["sprite_brachio_dino_caged"] = "assets/generated/sprites/brachio_dino_caged.png",
+        ["sprite_brachio_dino_cracked"] = "assets/generated/sprites/brachio_dino_cracked.png",
+        ["sprite_brachio_dino_free"] = "assets/generated/sprites/brachio_dino_free.png",
+        ["sprite_ptero_dino_caged"] = "assets/generated/sprites/ptero_dino_caged.png",
+        ["sprite_ptero_dino_cracked"] = "assets/generated/sprites/ptero_dino_cracked.png",
+        ["sprite_ptero_dino_free"] = "assets/generated/sprites/ptero_dino_free.png",
+        ["magic_orb_pink"] = "assets/generated/sprites/magic_orb_pink.png",
+        ["magic_orb_blue"] = "assets/generated/sprites/magic_orb_blue.png",
+        ["magic_orb_yellow"] = "assets/generated/sprites/magic_orb_yellow.png",
+        ["magic_gate_pink"] = "assets/generated/sprites/magic_gate_pink.png",
+        ["magic_gate_blue"] = "assets/generated/sprites/magic_gate_blue.png",
+        ["magic_gate_yellow"] = "assets/generated/sprites/magic_gate_yellow.png",
+        ["dressup_unicorn"] = "assets/generated/sprites/dressup_unicorn.png",
+        ["unicorn_crown"] = "assets/generated/sprites/unicorn_crown.png",
+        ["unicorn_bow"] = "assets/generated/sprites/unicorn_bow.png",
+        ["unicorn_blanket"] = "assets/generated/sprites/unicorn_blanket.png",
+        ["bg_dino_stage_meadow"] = "assets/generated/backgrounds/dino_stage_meadow.png",
+        ["bg_dino_stage_jungle"] = "assets/generated/backgrounds/dino_stage_jungle.png",
+        ["bg_dino_stage_valley"] = "assets/generated/backgrounds/dino_stage_valley.png",
     };
 
     private static readonly Dictionary<string, string> SoundPaths = new()
@@ -251,7 +288,7 @@ public sealed class AssetManager : IDisposable
 
     private static int[] BuildCodepoints()
     {
-        const string text = "一下主之也了以任伊住倒公出到力功動卡原反可吃向單回在地坑城基堡壓夕多夜大女好始姐婆子孩安完寶尋小巫已幫弟彩忙恐意慶應成或戲房手打找抓拆拯按掉揮援擇擋收救方星晶更會有木林果森樹氣水波滿物狗獨獸王球由白祝移空第籠繼續羅自與草菜虹被要角變貓赫起跟輪近連遊選還鍵鎮開關除陽隊隻集需青靠顆食麗點龍身：，·！/0123456789";
+        const string text = "一下三上主之也了以任伊住倒公冠出到力功加動卡原反可吃向單同回在地坑城基堡壓夕多夜大女好始姐婆子孩安完寶尋小巫已幫弟彩忙恐意慶應成或戲房手打找抓拆拯按掉揮援擇擋收救方星晶更會有木林果森樹氣水波滿物狗獨獸王球由白祝移空第籠紅結繼續羅自與色草菜虹被要角變貓赫起跟輪近送連遊選還配鍵鎮開關除陽隊隻集需青靠顆顏風食飾麗點龍身黃亮二朋友入伍劍四五腕翼長頸高峽谷玫瑰魔法花園光門夥伴粉碎新能量發喜嗯品對很後想扮把披拿放最歡正漂用皇著藍蝴蝶裝：，·！/0123456789";
         return text.Distinct().Select(c => (int)c).Concat(Enumerable.Range(32, 95)).Distinct().ToArray();
     }
 
