@@ -29,6 +29,7 @@ public sealed class TitleScene : IScene
         {
             _selectedMode = 1 - _selectedMode;
             _game.Audio.Play("sfx_button");
+            return;
         }
 
         if (Raylib.IsKeyPressed(KeyboardKey.One) || Raylib.IsKeyPressed(KeyboardKey.Kp1))
@@ -43,9 +44,10 @@ public sealed class TitleScene : IScene
             return;
         }
 
-        if (Raylib.IsKeyPressed(KeyboardKey.Enter) || Raylib.IsKeyPressed(KeyboardKey.Space))
+        if (Raylib.GetKeyPressed() != 0)
         {
             StartMode(_selectedMode);
+            return;
         }
 
         if (_selectedMode != _previousSelectedMode)
@@ -76,24 +78,24 @@ public sealed class TitleScene : IScene
         var titleBob = MathF.Sin(_time * 1.6f) * 4f;
         DrawCentered(font, "公主與波麗救援隊", 68 + titleBob, 48, new Color(255, 255, 255, 120), new Vector2(2, 3));
         DrawCentered(font, "公主與波麗救援隊", 66 + titleBob, 48, new Color(95, 58, 128, 255));
-        DrawCentered(font, "方向鍵選擇  Enter開始  也可以按1或2", 126, 24, new Color(62, 91, 128, 230));
+        DrawCentered(font, "方向鍵選擇  任意鍵開始  也可以按1或2", 126, 24, new Color(62, 91, 128, 230));
 
         DrawModeCard(
             index: 0,
             rect: new Rectangle(92, 194, 500, 360),
             title: "1 公主拯救遊戲",
-            subtitle: "三關公主魔法，最後裝扮獨角獸",
+            subtitle: "四段公主故事，從巫婆序章開始",
             accent: new Color(255, 117, 186, 255));
 
         DrawModeCard(
             index: 1,
             rect: new Rectangle(688, 194, 500, 360),
             title: "2 波麗拯救恐龍",
-            subtitle: "五關恐龍救援，一起拆籠子",
+            subtitle: "連按小遊戲，穿插恐龍救援",
             accent: new Color(77, 167, 224, 255));
 
         var pulse = (MathF.Sin(_time * 4f) + 1f) * 0.5f;
-        DrawCentered(font, "空白鍵連點也會有反應", 626, 24, new Color(80, 75, 118, (int)(145 + pulse * 80)));
+        DrawCentered(font, "按到別的鍵也能開始", 626, 24, new Color(80, 75, 118, (int)(145 + pulse * 80)));
 
         DrawVignette();
     }
@@ -152,13 +154,17 @@ public sealed class TitleScene : IScene
     {
         var bob = MathF.Sin(_time * 3f) * 5f;
         Raylib.DrawCircleV(new Vector2(rect.X + 258, rect.Y + 252 + lift), 160, new Color(255, 235, 180, 42));
+        DrawPreviewTexture("story_witch", new Rectangle(rect.X + 82, rect.Y + 230 + lift + bob, 96, 112));
+        DrawPreviewTexture("magic_child_pink", new Rectangle(rect.X + 154, rect.Y + 250 + lift - bob * 0.35f, 58, 72));
+        DrawPreviewTexture("magic_child_blue", new Rectangle(rect.X + 202, rect.Y + 252 + lift + bob * 0.2f, 58, 72));
+        DrawPreviewTexture("magic_child_yellow", new Rectangle(rect.X + 178, rect.Y + 302 + lift - bob * 0.2f, 58, 72));
+        DrawPreviewTexture("story_cottage_locked", new Rectangle(rect.X + 392, rect.Y + 230 + lift, 174, 156));
         GeneratedSprites.TryDraw(_game.Assets, RescueSprite.CastleRoyal, new Rectangle(rect.X + 246, rect.Y + 238 + lift, 190, 190), Color.White);
         GeneratedSprites.TryDraw(_game.Assets, RescueSprite.PrinceWindow, new Rectangle(rect.X + 242, rect.Y + 168 + lift + bob, 102, 112), Color.White);
-        GeneratedSprites.TryDraw(_game.Assets, RescueSprite.Princess, new Rectangle(rect.X + 94, rect.Y + 244 + lift + bob, 118, 136), Color.White);
+        GeneratedSprites.TryDraw(_game.Assets, RescueSprite.Princess, new Rectangle(rect.X + 106, rect.Y + 316 + lift + bob * 0.4f, 96, 112), Color.White);
         GeneratedSprites.TryDraw(_game.Assets, RescueSprite.PrincessMermaid, new Rectangle(rect.X + 54, rect.Y + 342 + lift - bob * 0.4f, 72, 82), Color.White);
         GeneratedSprites.TryDraw(_game.Assets, RescueSprite.PrincessIce, new Rectangle(rect.X + 136, rect.Y + 350 + lift + bob * 0.35f, 72, 82), Color.White);
         GeneratedSprites.TryDraw(_game.Assets, RescueSprite.PrincessRapunzel, new Rectangle(rect.X + 222, rect.Y + 356 + lift - bob * 0.25f, 72, 82), Color.White);
-        GeneratedSprites.TryDraw(_game.Assets, RescueSprite.Cottage, new Rectangle(rect.X + 392, rect.Y + 252 + lift, 182, 158), Color.White);
         GeneratedSprites.TryDraw(_game.Assets, RescueSprite.Apple, new Rectangle(rect.X + 164, rect.Y + 322 + lift, 58, 58), Color.White);
         GeneratedSprites.TryDraw(_game.Assets, RescueSprite.Carrot, new Rectangle(rect.X + 224, rect.Y + 324 + lift, 58, 58), Color.White);
         DrawPreviewTexture("magic_orb_pink", new Rectangle(rect.X + 374, rect.Y + 382 + lift + bob * 0.2f, 54, 60));
@@ -177,6 +183,9 @@ public sealed class TitleScene : IScene
         GeneratedSprites.TryDraw(_game.Assets, RescueSprite.StegoDinoCaged, new Rectangle(rect.X + 436, rect.Y + 306 + lift - bob * 0.35f, 126, 142), Color.White);
         GeneratedSprites.TryDraw(_game.Assets, RescueSprite.BrachioDinoCaged, new Rectangle(rect.X + 380, rect.Y + 334 + lift + bob * 0.2f, 118, 128), Color.White);
         GeneratedSprites.TryDraw(_game.Assets, RescueSprite.PteroDinoCaged, new Rectangle(rect.X + 500, rect.Y + 350 + lift - bob * 0.2f, 106, 116), Color.White);
+        DrawPreviewTexture("tap_poli_charger", new Rectangle(rect.X + 70, rect.Y + 340 + lift, 74, 84));
+        DrawPreviewTexture("tap_wash_sponge", new Rectangle(rect.X + 286, rect.Y + 382 + lift + bob * 0.3f, 72, 58));
+        DrawPreviewTexture("tap_dino_egg", new Rectangle(rect.X + 508, rect.Y + 216 + lift - bob * 0.2f, 70, 82));
     }
 
     private void DrawPreviewTexture(string textureName, Rectangle box)

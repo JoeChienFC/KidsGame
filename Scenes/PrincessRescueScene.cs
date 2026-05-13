@@ -56,23 +56,46 @@ public sealed class PrincessRescueScene : IScene
         }
     }
 
+    private sealed class StoryChild
+    {
+        public string Texture { get; }
+        public Vector2 Position { get; }
+        public Color Accent { get; }
+        public float Phase { get; }
+        public bool Caught { get; set; }
+        public bool Locked { get; set; }
+
+        public StoryChild(string texture, Vector2 position, Color accent, float phase)
+        {
+            Texture = texture;
+            Position = position;
+            Accent = accent;
+            Phase = phase;
+        }
+    }
+
     private sealed class MagicMatch
     {
         public string Name { get; }
+        public string ChildTexture { get; }
         public string OrbTexture { get; }
         public string GateTexture { get; }
+        public Vector2 ChildPosition { get; }
         public Vector2 OrbPosition { get; }
         public Vector2 GatePosition { get; }
         public Color Accent { get; }
+        public bool ChildFound { get; set; }
         public bool Collected { get; set; }
         public bool Matched { get; set; }
         public float Phase { get; }
 
-        public MagicMatch(string name, string orbTexture, string gateTexture, Vector2 orbPosition, Vector2 gatePosition, Color accent, float phase)
+        public MagicMatch(string name, string childTexture, string orbTexture, string gateTexture, Vector2 childPosition, Vector2 orbPosition, Vector2 gatePosition, Color accent, float phase)
         {
             Name = name;
+            ChildTexture = childTexture;
             OrbTexture = orbTexture;
             GateTexture = gateTexture;
+            ChildPosition = childPosition;
             OrbPosition = orbPosition;
             GatePosition = gatePosition;
             Accent = accent;
@@ -101,8 +124,10 @@ public sealed class PrincessRescueScene : IScene
 
     private const float NormalMaxSpeed = 240f;
     private const float PoweredMaxSpeed = 310f;
+    private const float StoryWitchMaxSpeed = 230f;
     private const float NormalAccel = 1700f;
     private const float PoweredAccel = 2200f;
+    private const float StoryWitchAccel = 1850f;
     private const float Friction = 8f;
 
     private readonly Game _game;
@@ -112,10 +137,12 @@ public sealed class PrincessRescueScene : IScene
     private readonly Food[] _foods;
     private readonly CompanionPrincess[] _companions;
     private readonly Decoration[] _decorations;
+    private readonly StoryChild[] _storyChildren;
     private readonly MagicMatch[] _magicMatches;
     private readonly DressupAccessory[] _dressupAccessories;
     private readonly Vector2 _castlePosition;
     private readonly Vector2 _housePosition;
+    private readonly string _dressupUnicornTexture;
 
     private Vector2 _princessPosition;
     private Vector2 _princessVelocity;
@@ -123,6 +150,13 @@ public sealed class PrincessRescueScene : IScene
     private float _walkTime;
     private float _dustTimer;
     private float _idleTimer;
+    private Vector2 _witchPosition;
+    private Vector2 _witchVelocity;
+    private float _witchFacing = 1f;
+    private float _witchWalkTime;
+    private float _witchDustTimer;
+    private int _heldStoryChildIndex = -1;
+    private float _storyFeedbackTimer;
 
     private float _time;
     private int _houseHits;
@@ -145,27 +179,35 @@ public sealed class PrincessRescueScene : IScene
     private bool _dressupThinking;
     private float _dressupHeartPulse;
 
-    public PrincessRescueScene(Game game) : this(game, 1) { }
+    public PrincessRescueScene(Game game) : this(game, 0) { }
 
     public PrincessRescueScene(Game game, int stage)
     {
         _game = game;
-        _stage = Math.Clamp(stage, 1, 3);
+        _stage = Math.Clamp(stage, 0, 3);
         _princessPosition = _stage switch
         {
             1 => new Vector2(185, 560),
             2 => new Vector2(180, 560),
             _ => new Vector2(640, 548),
         };
+        _witchPosition = new Vector2(150, 566);
         _castlePosition = _stage == 1 ? new Vector2(640, 260) : new Vector2(622, 248);
-        _housePosition = _stage == 1 ? new Vector2(1032, 342) : new Vector2(1018, 346);
+        _housePosition = _stage switch
+        {
+            0 => new Vector2(1034, 408),
+            1 => new Vector2(1032, 342),
+            _ => new Vector2(1018, 346),
+        };
         var rand = new Random(Environment.TickCount ^ Guid.NewGuid().GetHashCode() ^ _stage * 97);
         var occupied = new List<Vector2> { _princessPosition, _castlePosition, _housePosition };
         _foods = _stage == 1 ? CreateFoods(rand, occupied) : [];
         _companions = _stage == 1 ? CreateCompanions(rand, occupied) : [];
         _decorations = _stage == 1 ? CreateDecorations(rand) : [];
+        _storyChildren = _stage == 0 ? CreateStoryChildren() : [];
         _magicMatches = _stage == 2 ? CreateMagicMatches() : [];
         _dressupAccessories = _stage == 3 ? CreateDressupAccessories() : [];
+        _dressupUnicornTexture = _stage == 3 && rand.Next(2) == 0 ? "dressup_unicorn_alt" : "dressup_unicorn";
     }
 
     private Food[] CreateFoods(Random rand, List<Vector2> occupied)
@@ -236,13 +278,23 @@ public sealed class PrincessRescueScene : IScene
         return decorations;
     }
 
+    private static StoryChild[] CreateStoryChildren()
+    {
+        return
+        [
+            new("magic_child_pink", new Vector2(310, 466), new Color(255, 107, 186, 255), 0.2f),
+            new("magic_child_blue", new Vector2(560, 552), new Color(74, 174, 255, 255), 1.8f),
+            new("magic_child_yellow", new Vector2(438, 300), new Color(255, 214, 77, 255), 3.2f),
+        ];
+    }
+
     private static MagicMatch[] CreateMagicMatches()
     {
         return
         [
-            new("粉紅", "magic_orb_pink", "magic_gate_pink", new Vector2(245, 250), new Vector2(980, 236), new Color(255, 107, 186, 255), 0.2f),
-            new("藍色", "magic_orb_blue", "magic_gate_blue", new Vector2(355, 540), new Vector2(672, 178), new Color(74, 174, 255, 255), 1.8f),
-            new("黃色", "magic_orb_yellow", "magic_gate_yellow", new Vector2(790, 558), new Vector2(1114, 470), new Color(255, 214, 77, 255), 3.2f),
+            new("粉紅", "magic_child_pink", "magic_orb_pink", "magic_gate_pink", new Vector2(246, 474), new Vector2(245, 250), new Vector2(980, 236), new Color(255, 107, 186, 255), 0.2f),
+            new("藍色", "magic_child_blue", "magic_orb_blue", "magic_gate_blue", new Vector2(520, 548), new Vector2(355, 300), new Vector2(672, 178), new Color(74, 174, 255, 255), 1.8f),
+            new("黃色", "magic_child_yellow", "magic_orb_yellow", "magic_gate_yellow", new Vector2(845, 285), new Vector2(790, 558), new Vector2(1114, 470), new Color(255, 214, 77, 255), 3.2f),
         ];
     }
 
@@ -314,6 +366,7 @@ public sealed class PrincessRescueScene : IScene
 
     private string CurrentStageLabel => _stage switch
     {
+        0 => "第0關",
         1 => "第一關",
         2 => "第二關",
         _ => "第三關",
@@ -321,6 +374,7 @@ public sealed class PrincessRescueScene : IScene
 
     private string CurrentRescueName => _stage switch
     {
+        0 => "故事序章",
         1 => "小公主",
         2 => "顏色魔法",
         _ => "獨角獸",
@@ -371,6 +425,12 @@ public sealed class PrincessRescueScene : IScene
             return;
         }
 
+        if (_stage == 0)
+        {
+            UpdateStoryIntroLevel(effectiveDt);
+            return;
+        }
+
         if (_stage == 2)
         {
             UpdateColorMatchLevel(effectiveDt);
@@ -414,6 +474,109 @@ public sealed class PrincessRescueScene : IScene
         _floatingTexts.Update(dt);
     }
 
+    private void UpdateStoryIntroLevel(float dt)
+    {
+        MoveStoryWitch(dt);
+        _storyFeedbackTimer = MathF.Max(0f, _storyFeedbackTimer - dt);
+
+        if (_heldStoryChildIndex < 0)
+        {
+            for (var i = 0; i < _storyChildren.Length; i++)
+            {
+                var child = _storyChildren[i];
+                if (child.Locked || child.Caught || Vector2.Distance(_witchPosition, child.Position) > 82f) continue;
+
+                child.Caught = true;
+                _heldStoryChildIndex = i;
+                _game.Audio.Play("sfx_collect");
+                _particles.EmitStars(child.Position + new Vector2(0, -34), 22);
+                _particles.EmitHearts(child.Position + new Vector2(0, -28), 12);
+                _floatingTexts.Spawn("抓到了!", child.Position + new Vector2(0, -82), child.Accent, 34f, 1.4f);
+                _zoomPunch = MathF.Max(_zoomPunch, 0.45f);
+                break;
+            }
+        }
+
+        if (Raylib.IsKeyPressed(KeyboardKey.Space))
+        {
+            if (_heldStoryChildIndex < 0)
+            {
+                ShowStoryHint("先找到小孩");
+            }
+            else if (Vector2.Distance(_witchPosition, _housePosition) <= 170f)
+            {
+                LockHeldStoryChild();
+            }
+            else
+            {
+                ShowStoryHint("帶到房子門口");
+            }
+        }
+
+        if (_heldStoryChildIndex >= 0 && Vector2.Distance(_witchPosition, _housePosition) <= 176f)
+        {
+            _particles.EmitSparkle(_housePosition + new Vector2(-40, 10), 1);
+        }
+
+        UpdateAmbientMagic(dt);
+        _particles.Update(dt);
+        _floatingTexts.Update(dt);
+    }
+
+    private void LockHeldStoryChild()
+    {
+        if (_heldStoryChildIndex < 0) return;
+
+        var child = _storyChildren[_heldStoryChildIndex];
+        child.Caught = false;
+        child.Locked = true;
+        _heldStoryChildIndex = -1;
+        _game.Audio.Play("sfx_rescue_hit");
+        _particles.EmitStars(_housePosition + new Vector2(-20, -20), 24);
+        _particles.EmitHearts(_housePosition + new Vector2(-36, 16), 14);
+        _floatingTexts.Spawn($"關起來 {StoryLockedCount}/{_storyChildren.Length}", _housePosition + new Vector2(0, -154), child.Accent, 34f, 1.5f);
+        _zoomPunch = MathF.Max(_zoomPunch, 0.5f);
+        _globalShake = MathF.Max(_globalShake, 4f);
+
+        if (StoryLockedCount >= _storyChildren.Length)
+        {
+            CompleteStoryIntro();
+        }
+        else
+        {
+            _floatingTexts.Spawn("再找一個!", _witchPosition + new Vector2(0, -88), new Color(95, 58, 128, 255), 28f, 1.2f);
+        }
+    }
+
+    private void ShowStoryHint(string text)
+    {
+        if (_storyFeedbackTimer > 0f) return;
+
+        _storyFeedbackTimer = 0.9f;
+        _game.Audio.Play("sfx_button");
+        _particles.EmitStars(_witchPosition + new Vector2(0, -46), 4);
+        _floatingTexts.Spawn(text, _witchPosition + new Vector2(0, -86), new Color(95, 58, 128, 255), 28f, 1.1f);
+        _zoomPunch = MathF.Max(_zoomPunch, 0.12f);
+    }
+
+    private void CompleteStoryIntro()
+    {
+        if (_complete) return;
+
+        _complete = true;
+        _completeTimer = 0f;
+        _game.Audio.Play("sfx_rescue_complete");
+        _particles.EmitFirework(_housePosition + new Vector2(-18, 22), 38);
+        _particles.EmitHearts(_housePosition + new Vector2(0, -34), 42);
+        _particles.EmitStars(_housePosition + new Vector2(0, -24), 34);
+        _particles.EmitConfetti(_housePosition + new Vector2(0, -58), 24);
+        _floatingTexts.Spawn("三個都關起來!", _housePosition + new Vector2(0, -176), new Color(255, 90, 160, 255), 42f, 2.0f);
+        _zoomPunch = 0.9f;
+        _slowMoTimer = 0.35f;
+        _globalShake = 10f;
+        _flashAmount = 0.75f;
+    }
+
     private void UpdateColorMatchLevel(float dt)
     {
         MovePrincess(dt);
@@ -428,20 +591,46 @@ public sealed class PrincessRescueScene : IScene
 
         if (_heldMagicIndex < 0)
         {
+            var foundChildThisFrame = false;
             for (var i = 0; i < _magicMatches.Length; i++)
             {
                 var match = _magicMatches[i];
-                if (match.Collected || match.Matched) continue;
-                if (Vector2.Distance(_princessPosition, match.OrbPosition) > 64f) continue;
+                if (match.ChildFound || match.Matched) continue;
+                if (Vector2.Distance(_princessPosition, match.ChildPosition) > 70f) continue;
 
-                match.Collected = true;
-                _heldMagicIndex = i;
+                match.ChildFound = true;
+                foundChildThisFrame = true;
                 _game.Audio.Play("sfx_collect");
-                _particles.EmitStars(match.OrbPosition, 18);
-                _particles.EmitHearts(match.OrbPosition, 8);
-                _floatingTexts.Spawn($"{match.Name}魔法!", match.OrbPosition + new Vector2(0, -70), match.Accent, 31f, 1.4f);
-                _zoomPunch = MathF.Max(_zoomPunch, 0.35f);
+                _particles.EmitStars(match.ChildPosition, 20);
+                _particles.EmitHearts(match.ChildPosition, 14);
+                _floatingTexts.Spawn($"找到{match.Name}小孩!", match.ChildPosition + new Vector2(0, -82), match.Accent, 31f, 1.4f);
+                _zoomPunch = MathF.Max(_zoomPunch, 0.36f);
                 break;
+            }
+
+            if (!foundChildThisFrame)
+            {
+                for (var i = 0; i < _magicMatches.Length; i++)
+                {
+                    var match = _magicMatches[i];
+                    if (match.Collected || match.Matched) continue;
+                    if (Vector2.Distance(_princessPosition, match.OrbPosition) > 64f) continue;
+
+                    if (!match.ChildFound)
+                    {
+                        ShowMagicFeedback($"先找{match.Name}小孩", match.OrbPosition + new Vector2(0, -76), match.Accent);
+                        break;
+                    }
+
+                    match.Collected = true;
+                    _heldMagicIndex = i;
+                    _game.Audio.Play("sfx_collect");
+                    _particles.EmitStars(match.OrbPosition, 18);
+                    _particles.EmitHearts(match.OrbPosition, 8);
+                    _floatingTexts.Spawn($"{match.Name}寶石!", match.OrbPosition + new Vector2(0, -70), match.Accent, 31f, 1.4f);
+                    _zoomPunch = MathF.Max(_zoomPunch, 0.35f);
+                    break;
+                }
             }
         }
         else
@@ -454,23 +643,19 @@ public sealed class PrincessRescueScene : IScene
 
                 if (i == _heldMagicIndex)
                 {
-                    gate.Matched = true;
+                    held.Matched = true;
                     _heldMagicIndex = -1;
                     _game.Audio.Play("sfx_rescue_complete");
                     _particles.EmitRainbow(gate.GatePosition, 36);
                     _particles.EmitHearts(gate.GatePosition, 24);
                     _particles.EmitStars(gate.GatePosition, 28);
-                    _floatingTexts.Spawn("配對成功!", gate.GatePosition + new Vector2(0, -112), gate.Accent, 36f, 1.6f);
+                    _floatingTexts.Spawn($"{gate.Name}小孩回家!", gate.GatePosition + new Vector2(0, -112), gate.Accent, 36f, 1.6f);
                     _zoomPunch = MathF.Max(_zoomPunch, 0.6f);
                     _flashAmount = 0.45f;
                 }
-                else if (_magicFeedbackTimer <= 0f)
+                else
                 {
-                    _magicFeedbackTimer = 1.1f;
-                    _magicFeedbackText = $"找{held.Name}門";
-                    _game.Audio.Play("sfx_button");
-                    _particles.EmitStars(gate.GatePosition + new Vector2(0, -42), 6);
-                    _floatingTexts.Spawn(_magicFeedbackText, gate.GatePosition + new Vector2(0, -118), held.Accent, 29f, 1.0f);
+                    ShowMagicFeedback($"找{held.Name}門", gate.GatePosition + new Vector2(0, -118), held.Accent);
                 }
                 break;
             }
@@ -478,22 +663,38 @@ public sealed class PrincessRescueScene : IScene
 
         if (!_complete && _magicMatches.All(m => m.Matched))
         {
-            _complete = true;
-            _completeTimer = 0f;
-            _game.Audio.Play("sfx_rescue_complete");
-            _particles.EmitFirework(new Vector2(640, 340), 70);
-            _particles.EmitRainbow(new Vector2(640, 342), 52);
-            _particles.EmitHearts(new Vector2(640, 320), 44);
-            _floatingTexts.Spawn("顏色魔法完成!", new Vector2(640, 210), new Color(255, 108, 190, 255), 42f, 2.0f);
-            _zoomPunch = 1f;
-            _slowMoTimer = 0.5f;
-            _globalShake = 10f;
-            _flashAmount = 0.85f;
+            CompleteColorMatchLevel();
         }
 
         UpdateAmbientMagic(dt);
         _particles.Update(dt);
         _floatingTexts.Update(dt);
+    }
+
+    private void ShowMagicFeedback(string text, Vector2 position, Color color)
+    {
+        if (_magicFeedbackTimer > 0f) return;
+
+        _magicFeedbackTimer = 1.1f;
+        _magicFeedbackText = text;
+        _game.Audio.Play("sfx_button");
+        _particles.EmitStars(position + new Vector2(0, 24), 6);
+        _floatingTexts.Spawn(_magicFeedbackText, position, color, 29f, 1.0f);
+    }
+
+    private void CompleteColorMatchLevel()
+    {
+        _complete = true;
+        _completeTimer = 0f;
+        _game.Audio.Play("sfx_rescue_complete");
+        _particles.EmitFirework(new Vector2(640, 340), 70);
+        _particles.EmitRainbow(new Vector2(640, 342), 52);
+        _particles.EmitHearts(new Vector2(640, 320), 44);
+        _floatingTexts.Spawn("顏色魔法完成!", new Vector2(640, 210), new Color(255, 108, 190, 255), 42f, 2.0f);
+        _zoomPunch = 1f;
+        _slowMoTimer = 0.5f;
+        _globalShake = 10f;
+        _flashAmount = 0.85f;
     }
 
     private void UpdateDressupLevel(float dt)
@@ -604,6 +805,12 @@ public sealed class PrincessRescueScene : IScene
 
     public void Draw()
     {
+        if (_stage == 0)
+        {
+            DrawStoryIntroLevel();
+            return;
+        }
+
         if (_stage == 2)
         {
             DrawColorMatchLevel();
@@ -660,6 +867,33 @@ public sealed class PrincessRescueScene : IScene
         }
 
         DrawHud();
+    }
+
+    private void DrawStoryIntroLevel()
+    {
+        Raylib.ClearBackground(new Color(114, 194, 125, 255));
+        var zoom = 1f + _zoomPunch * 0.05f;
+        var center = new Vector2(Game.ScreenWidth / 2f, Game.ScreenHeight / 2f);
+        Raylib.BeginMode2D(new Camera2D
+        {
+            Target = center,
+            Offset = center + CurrentShake(),
+            Rotation = 0,
+            Zoom = zoom,
+        });
+
+        DrawStoryForestBackdrop();
+        DrawStoryHouse();
+        DrawStoryChild();
+        DrawStoryWitch();
+        DrawStoryGuide();
+        _particles.Draw(_game.Assets);
+        _floatingTexts.Draw(_game.Assets.GetFont());
+
+        Raylib.EndMode2D();
+        DrawVignette();
+        DrawFlash();
+        DrawStoryHud();
     }
 
     private void DrawColorMatchLevel()
@@ -730,6 +964,123 @@ public sealed class PrincessRescueScene : IScene
         Raylib.DrawRectangle(0, 0, Game.ScreenWidth, Game.ScreenHeight, new Color(255, 255, 255, alpha));
     }
 
+    private void DrawStoryForestBackdrop()
+    {
+        var background = _game.Assets.FindTexture("bg_story_witch_forest");
+        if (background.HasValue)
+        {
+            Raylib.DrawTexturePro(
+                background.Value,
+                new Rectangle(0, 0, background.Value.Width, background.Value.Height),
+                new Rectangle(0, 0, Game.ScreenWidth, Game.ScreenHeight),
+                Vector2.Zero,
+                0,
+                Color.White);
+        }
+        else
+        {
+            Raylib.DrawRectangleGradientV(0, 0, Game.ScreenWidth, Game.ScreenHeight, new Color(150, 220, 172, 255), new Color(94, 184, 112, 255));
+        }
+
+        var pulse = (MathF.Sin(_time * 2.4f) + 1f) * 0.5f;
+        Raylib.DrawCircleV(new Vector2(620, 365), 270f + pulse * 16f, new Color(255, 250, 190, 42));
+        Raylib.DrawCircleV(_housePosition + new Vector2(-22, 20), 162f + pulse * 10f, new Color(255, 238, 170, 36));
+    }
+
+    private void DrawStoryHouse()
+    {
+        var nearHouse = _heldStoryChildIndex >= 0 && !_complete && Vector2.Distance(_witchPosition, _housePosition) <= 176f;
+        var pulse = (MathF.Sin(_time * 4.2f) + 1f) * 0.5f;
+        var houseTexture = StoryLockedCount > 0 || _complete ? "story_cottage_locked" : "story_cottage_open";
+        var lift = nearHouse ? -pulse * 4f : 0f;
+
+        Raylib.DrawEllipse((int)_housePosition.X, (int)(_housePosition.Y + 158), 164, 20, new Color(0, 0, 0, 55));
+        if (nearHouse)
+        {
+            Raylib.DrawCircleV(_housePosition + new Vector2(-54, 36), 88f + pulse * 12f, new Color(255, 255, 255, 72));
+            Raylib.DrawCircleLines((int)(_housePosition.X - 54), (int)(_housePosition.Y + 36), (int)(96f + pulse * 12f), new Color(255, 238, 150, 170));
+        }
+
+        DrawNamedTexture(houseTexture, new Rectangle(_housePosition.X, _housePosition.Y + lift, 410, 330), Color.White);
+        if (_complete)
+        {
+            var cryBob = MathF.Sin(_completeTimer * 7f) * 3f;
+            Raylib.DrawCircleV(_housePosition + new Vector2(-58, 18 + cryBob), 112, new Color(255, 255, 255, 72));
+            DrawNamedTexture("story_children_locked_crying", new Rectangle(_housePosition.X - 54, _housePosition.Y + 10 + cryBob, 274, 184), Color.White);
+        }
+    }
+
+    private void DrawStoryChild()
+    {
+        if (_complete) return;
+
+        for (var i = 0; i < _storyChildren.Length; i++)
+        {
+            var child = _storyChildren[i];
+            if (child.Locked) continue;
+
+            var position = CurrentStoryChildPosition(i);
+            var caught = i == _heldStoryChildIndex;
+            var bob = MathF.Sin(_time * (caught ? 6f : 3f) + child.Phase) * (caught ? 3f : 4f);
+            var glow = caught ? 0.4f : (MathF.Sin(_time * 3.3f + child.Phase) + 1f) * 0.5f;
+
+            Raylib.DrawEllipse((int)position.X, (int)(position.Y + 56), 34, 8, new Color(0, 0, 0, 55));
+            Raylib.DrawCircleV(position + new Vector2(0, -8 + bob), 58f + glow * 9f, new Color((int)child.Accent.R, (int)child.Accent.G, (int)child.Accent.B, 48));
+            DrawNamedTexture(child.Texture, new Rectangle(position.X, position.Y + bob, 156, 174), Color.White, MathF.Sin(_time * 4f + child.Phase) * (caught ? 2f : 3f));
+        }
+    }
+
+    private void DrawStoryWitch()
+    {
+        var speed = _witchVelocity.Length();
+        var moving = speed > 30f;
+        var speedT = Math.Clamp(speed / StoryWitchMaxSpeed, 0f, 1f);
+        var bob = moving ? MathF.Sin(_witchWalkTime * 12f) * (4f + speedT * 3f) : MathF.Sin(_time * 2.5f) * 2.5f;
+        var lean = _witchVelocity.X == 0 ? 0f : MathF.Sign(_witchVelocity.X) * speedT * 5f;
+        var pulse = (MathF.Sin(_time * 5f) + 1f) * 0.5f;
+
+        Raylib.DrawEllipse((int)_witchPosition.X, (int)(_witchPosition.Y + 58), (int)(42 + speedT * 10f), 9, new Color(0, 0, 0, 62));
+        Raylib.DrawCircleV(_witchPosition + new Vector2(0, -10 + bob), 76f + pulse * 7f, new Color(184, 118, 255, 44));
+        DrawNamedTexture("story_witch", new Rectangle(_witchPosition.X, _witchPosition.Y + bob, 172, 190), Color.White, lean + MathF.Sin(_time * 3.5f) * 1.4f);
+    }
+
+    private void DrawStoryGuide()
+    {
+        if (_complete) return;
+
+        var targetChild = CurrentStoryTargetChild();
+        if (targetChild is null) return;
+
+        var target = _heldStoryChildIndex < 0 ? targetChild.Position : _housePosition + new Vector2(-52, 40);
+        var source = _witchPosition + new Vector2(0, -38);
+        var color = _heldStoryChildIndex >= 0 ? new Color(255, 238, 125, 180) : targetChild.Accent;
+        var pulse = (MathF.Sin(_time * 5.5f) + 1f) * 0.5f;
+
+        Raylib.DrawLineEx(source, target, 4f, new Color((int)color.R, (int)color.G, (int)color.B, 68));
+        Raylib.DrawCircleV(target, 28f + pulse * 8f, new Color((int)color.R, (int)color.G, (int)color.B, 58));
+        Raylib.DrawCircleLines((int)target.X, (int)target.Y, (int)(36f + pulse * 8f), color);
+    }
+
+    private Vector2 CurrentStoryChildPosition(int index)
+    {
+        if (index != _heldStoryChildIndex) return _storyChildren[index].Position;
+
+        var slotOffset = new Vector2(-_witchFacing * 62f, 12f + MathF.Sin(_time * 6f) * 2f);
+        return _witchPosition + slotOffset;
+    }
+
+    private StoryChild? CurrentStoryTargetChild()
+    {
+        if (_heldStoryChildIndex >= 0) return _storyChildren[_heldStoryChildIndex];
+
+        foreach (var child in _storyChildren)
+        {
+            if (!child.Locked) return child;
+        }
+
+        return null;
+    }
+
     private void DrawColorMatchBackdrop()
     {
         for (var y = 0; y < Game.ScreenHeight; y += 8)
@@ -765,16 +1116,32 @@ public sealed class PrincessRescueScene : IScene
     private void DrawMagicMatches()
     {
         var held = _heldMagicIndex >= 0 ? _magicMatches[_heldMagicIndex] : null;
-        foreach (var match in _magicMatches)
+        for (var i = 0; i < _magicMatches.Length; i++)
         {
-            DrawMagicGate(match);
+            DrawMagicGate(_magicMatches[i]);
         }
 
-        foreach (var match in _magicMatches)
+        for (var i = 0; i < _magicMatches.Length; i++)
         {
-            if (!match.Collected && !match.Matched)
+            var match = _magicMatches[i];
+            if (!match.Matched)
+            {
+                DrawMagicChild(match, CurrentMagicChildPosition(match, i), match.ChildFound ? 0.92f : 1f);
+            }
+        }
+
+        for (var i = 0; i < _magicMatches.Length; i++)
+        {
+            var match = _magicMatches[i];
+            if (match.ChildFound && !match.Collected && !match.Matched)
             {
                 DrawMagicOrb(match, match.OrbPosition);
+            }
+            else if (!match.ChildFound && !match.Matched)
+            {
+                var pulse = (MathF.Sin(_time * 4f + match.Phase) + 1f) * 0.5f;
+                Raylib.DrawCircleV(match.OrbPosition, 22f + pulse * 5f, new Color((int)match.Accent.R, (int)match.Accent.G, (int)match.Accent.B, 38));
+                Raylib.DrawCircleLines((int)match.OrbPosition.X, (int)match.OrbPosition.Y, (int)(26f + pulse * 5f), new Color(255, 255, 255, 90));
             }
         }
 
@@ -784,6 +1151,31 @@ public sealed class PrincessRescueScene : IScene
             DrawMagicOrb(held, hover, 0.78f);
             Raylib.DrawLineEx(_princessPosition + new Vector2(0, -42), hover + new Vector2(0, 34), 3f, new Color(255, 255, 255, 165));
         }
+    }
+
+    private Vector2 CurrentMagicChildPosition(MagicMatch match, int index)
+    {
+        if (!match.ChildFound) return match.ChildPosition;
+        if (match.Matched) return match.GatePosition + new Vector2(-50, 70);
+
+        var side = index % 2 == 0 ? -1f : 1f;
+        return _princessPosition + new Vector2(-_princessFacing * (70f + index * 5f), 28f + side * 10f + MathF.Sin(_time * 5f + match.Phase) * 2f);
+    }
+
+    private void DrawMagicChild(MagicMatch match, Vector2 position, float scale = 1f)
+    {
+        var bob = MathF.Sin(_time * (match.ChildFound ? 5f : 3.1f) + match.Phase) * (match.ChildFound ? 3f : 5f);
+        var pulse = (MathF.Sin(_time * 4.4f + match.Phase) + 1f) * 0.5f;
+        var size = match.ChildFound ? 96f * scale : 108f * scale;
+
+        Raylib.DrawEllipse((int)position.X, (int)(position.Y + size * 0.52f), (int)(size * 0.28f), 7, new Color(0, 0, 0, 52));
+        Raylib.DrawCircleV(position + new Vector2(0, -6 + bob), 50f * scale + pulse * 7f, new Color((int)match.Accent.R, (int)match.Accent.G, (int)match.Accent.B, match.ChildFound ? 38 : 58));
+        if (!match.ChildFound)
+        {
+            Raylib.DrawCircleLines((int)position.X, (int)(position.Y - 6 + bob), (int)(58f * scale + pulse * 7f), new Color(255, 255, 255, 135));
+        }
+
+        DrawNamedTexture(match.ChildTexture, new Rectangle(position.X, position.Y + bob, size, size * 1.18f), Color.White, MathF.Sin(_time * 3f + match.Phase) * 2f);
     }
 
     private void DrawMagicGate(MagicMatch match)
@@ -828,7 +1220,7 @@ public sealed class PrincessRescueScene : IScene
     private void DrawDressupUnicorn()
     {
         Raylib.DrawEllipse(650, 616, 168, 26, new Color(0, 0, 0, 52));
-        DrawNamedTexture("dressup_unicorn", new Rectangle(640, 382, 430, 430), Color.White);
+        DrawNamedTexture(_dressupUnicornTexture, new Rectangle(640, 382, 430, 430), Color.White);
     }
 
     private void DrawDressupAccessories()
@@ -885,14 +1277,41 @@ public sealed class PrincessRescueScene : IScene
     private void DrawColorMatchHud()
     {
         var font = _game.Assets.GetFont();
-        DrawPill(new Rectangle(24, 22, 284, 46), $"配對 {_magicMatches.Count(m => m.Matched)} / {_magicMatches.Length}", new Color(255, 108, 190, 255));
+        DrawPill(new Rectangle(24, 22, 284, 46), $"回家 {_magicMatches.Count(m => m.Matched)} / {_magicMatches.Length}", new Color(255, 108, 190, 255));
         DrawPill(new Rectangle(548, 22, 184, 46), CurrentStageLabel, new Color(186, 138, 255, 255));
-        var heldText = _heldMagicIndex >= 0 ? $"拿著 {_magicMatches[_heldMagicIndex].Name}" : "找一顆魔法球";
+        var heldText = _heldMagicIndex >= 0 ? $"拿著 {_magicMatches[_heldMagicIndex].Name}寶石" : MagicTaskText();
         DrawPill(new Rectangle(Game.ScreenWidth - 304, 22, 280, 46), heldText, _heldMagicIndex >= 0 ? _magicMatches[_heldMagicIndex].Accent : new Color(95, 174, 110, 255));
 
-        var tip = _complete ? "顏色配對完成! 下一關裝扮獨角獸" : "方向鍵移動，把魔法球送到同顏色門";
+        var tip = _complete ? "顏色配對完成! 下一關裝扮獨角獸" : "先找同色小孩，再找寶石，最後進同色門回家";
         var measured = Raylib.MeasureTextEx(font, tip, 23, 1);
         Raylib.DrawTextEx(font, tip, new Vector2((Game.ScreenWidth - measured.X) / 2f, Game.ScreenHeight - 44), 23, 1, new Color(60, 85, 100, 230));
+    }
+
+    private string MagicTaskText()
+    {
+        var nextChild = _magicMatches.FirstOrDefault(m => !m.Matched && !m.ChildFound);
+        if (nextChild is not null) return "找彩色小孩";
+
+        var nextGem = _magicMatches.FirstOrDefault(m => !m.Matched && m.ChildFound && !m.Collected);
+        if (nextGem is not null) return $"找{nextGem.Name}寶石";
+
+        return "找同色門";
+    }
+
+    private void DrawStoryHud()
+    {
+        var font = _game.Assets.GetFont();
+        DrawPill(new Rectangle(24, 22, 278, 46), $"關起來 {StoryLockedCount} / {_storyChildren.Length}", new Color(255, 108, 190, 255));
+        DrawPill(new Rectangle(548, 22, 184, 46), CurrentStageLabel, new Color(186, 138, 255, 255));
+        DrawPill(new Rectangle(Game.ScreenWidth - 330, 22, 306, 46), _heldStoryChildIndex >= 0 ? "帶到房子門口" : "方向鍵控制巫婆", new Color(95, 174, 110, 255));
+
+        var tip = _complete
+            ? "三個小孩都被關起來! 下一關公主來救人"
+            : _heldStoryChildIndex >= 0
+                ? "帶到房子門口，按空白鎖起來"
+                : "方向鍵移動巫婆，依序靠近三個小孩";
+        var measured = Raylib.MeasureTextEx(font, tip, 23, 1);
+        Raylib.DrawTextEx(font, tip, new Vector2((Game.ScreenWidth - measured.X) / 2f, Game.ScreenHeight - 44), 23, 1, new Color(60, 85, 100, 235));
     }
 
     private void DrawDressupHud()
@@ -955,6 +1374,44 @@ public sealed class PrincessRescueScene : IScene
                 _particles.EmitDust(_princessPosition + back * 14f + new Vector2(0, 38), _powered ? 3 : 2);
             }
         }
+    }
+
+    private void MoveStoryWitch(float dt)
+    {
+        var input = Vector2.Zero;
+        if (Raylib.IsKeyDown(KeyboardKey.Left)) input.X -= 1f;
+        if (Raylib.IsKeyDown(KeyboardKey.Right)) input.X += 1f;
+        if (Raylib.IsKeyDown(KeyboardKey.Up)) input.Y -= 1f;
+        if (Raylib.IsKeyDown(KeyboardKey.Down)) input.Y += 1f;
+
+        if (input.LengthSquared() > 0.01f)
+        {
+            input = Vector2.Normalize(input);
+            _witchVelocity += input * StoryWitchAccel * dt;
+            var len = _witchVelocity.Length();
+            if (len > StoryWitchMaxSpeed) _witchVelocity = _witchVelocity / len * StoryWitchMaxSpeed;
+            if (Math.Abs(input.X) > 0.05f) _witchFacing = MathF.Sign(input.X);
+        }
+        else
+        {
+            var decay = MathF.Exp(-Friction * dt);
+            _witchVelocity *= decay;
+            if (_witchVelocity.LengthSquared() < 4f) _witchVelocity = Vector2.Zero;
+        }
+
+        _witchPosition += _witchVelocity * dt;
+        _witchPosition = Mathf.Clamp(_witchPosition, 72, 150, Game.ScreenWidth - 72, Game.ScreenHeight - 72);
+
+        var speed = _witchVelocity.Length();
+        if (speed <= 30f) return;
+
+        _witchWalkTime += dt * Math.Max(0.5f, speed / 190f);
+        _witchDustTimer += dt;
+        if (_witchDustTimer <= 0.09f || speed <= 90f) return;
+
+        _witchDustTimer = 0f;
+        var back = speed > 0.01f ? -_witchVelocity / speed : Vector2.Zero;
+        _particles.EmitDust(_witchPosition + back * 12f + new Vector2(0, 46), 2);
     }
 
     private void UpdateFood()
@@ -1055,6 +1512,8 @@ public sealed class PrincessRescueScene : IScene
     }
 
     private int FoodCount => _foods.Count(f => f.Eaten);
+
+    private int StoryLockedCount => _storyChildren.Count(c => c.Locked);
 
     private void DrawForest()
     {

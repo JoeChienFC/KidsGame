@@ -83,6 +83,14 @@ public sealed class AssetManager : IDisposable
         ["sprite_princess_cinderella"] = "assets/generated/sprites/princess_cinderella.png",
         ["sprite_princess_rapunzel"] = "assets/generated/sprites/princess_rapunzel.png",
         ["sprite_princess_rose"] = "assets/generated/sprites/princess_rose.png",
+        ["story_witch"] = "assets/generated/sprites/story_witch.png",
+        ["story_child"] = "assets/generated/sprites/story_child.png",
+        ["story_cottage_open"] = "assets/generated/sprites/story_cottage_open.png",
+        ["story_cottage_locked"] = "assets/generated/sprites/story_cottage_locked.png",
+        ["story_children_locked_crying"] = "assets/generated/sprites/story_children_locked_crying.png",
+        ["magic_child_pink"] = "assets/generated/sprites/magic_child_pink.png",
+        ["magic_child_blue"] = "assets/generated/sprites/magic_child_blue.png",
+        ["magic_child_yellow"] = "assets/generated/sprites/magic_child_yellow.png",
         ["sprite_crested_dino_caged"] = "assets/generated/sprites/crested_dino_caged.png",
         ["sprite_crested_dino_cracked"] = "assets/generated/sprites/crested_dino_cracked.png",
         ["sprite_crested_dino_free"] = "assets/generated/sprites/crested_dino_free.png",
@@ -102,9 +110,21 @@ public sealed class AssetManager : IDisposable
         ["magic_gate_blue"] = "assets/generated/sprites/magic_gate_blue.png",
         ["magic_gate_yellow"] = "assets/generated/sprites/magic_gate_yellow.png",
         ["dressup_unicorn"] = "assets/generated/sprites/dressup_unicorn.png",
+        ["dressup_unicorn_alt"] = "assets/generated/sprites/dressup_unicorn_alt.png",
         ["unicorn_crown"] = "assets/generated/sprites/unicorn_crown.png",
         ["unicorn_bow"] = "assets/generated/sprites/unicorn_bow.png",
         ["unicorn_blanket"] = "assets/generated/sprites/unicorn_blanket.png",
+        ["bg_story_witch_forest"] = "assets/generated/backgrounds/story_witch_forest.png",
+        ["tap_dirty_dino"] = "assets/generated/sprites/tap_dirty_dino.png",
+        ["tap_clean_dino"] = "assets/generated/sprites/tap_clean_dino.png",
+        ["tap_wash_sponge"] = "assets/generated/sprites/tap_wash_sponge.png",
+        ["tap_dino_egg"] = "assets/generated/sprites/tap_dino_egg.png",
+        ["tap_dino_egg_cracked"] = "assets/generated/sprites/tap_dino_egg_cracked.png",
+        ["tap_baby_dino"] = "assets/generated/sprites/tap_baby_dino.png",
+        ["tap_firework_launcher"] = "assets/generated/sprites/tap_firework_launcher.png",
+        ["tap_firework_burst"] = "assets/generated/sprites/tap_firework_burst.png",
+        ["tap_poli_charger"] = "assets/generated/sprites/tap_poli_charger.png",
+        ["tap_battery"] = "assets/generated/sprites/tap_battery.png",
         ["bg_dino_stage_meadow"] = "assets/generated/backgrounds/dino_stage_meadow.png",
         ["bg_dino_stage_jungle"] = "assets/generated/backgrounds/dino_stage_jungle.png",
         ["bg_dino_stage_valley"] = "assets/generated/backgrounds/dino_stage_valley.png",
@@ -288,7 +308,7 @@ public sealed class AssetManager : IDisposable
 
     private static int[] BuildCodepoints()
     {
-        const string text = "一下三上主之也了以任伊住倒公冠出到力功加動卡原反可吃向單同回在地坑城基堡壓夕多夜大女好始姐婆子孩安完寶尋小巫已幫弟彩忙恐意慶應成或戲房手打找抓拆拯按掉揮援擇擋收救方星晶更會有木林果森樹氣水波滿物狗獨獸王球由白祝移空第籠紅結繼續羅自與色草菜虹被要角變貓赫起跟輪近送連遊選還配鍵鎮開關除陽隊隻集需青靠顆顏風食飾麗點龍身黃亮二朋友入伍劍四五腕翼長頸高峽谷玫瑰魔法花園光門夥伴粉碎新能量發喜嗯品對很後想扮把披拿放最歡正漂用皇著藍蝴蝶裝：，·！/0123456789";
+        const string text = "一下三上主之也了以任伊住倒公冠出到力功加動卡原反可吃向單同回在地坑城基堡壓夕多夜大女好始姐婆子孩安完寶尋小巫已幫弟彩忙恐意慶應成或戲房手打找抓拆拯按掉揮援擇擋收救方星晶更會有木林果森樹氣水波滿物狗獨獸王球由白祝移空第籠紅結繼續羅自與色草菜虹被要角變貓赫起跟輪近送連遊選還配鍵鎮開關除陽隊隻集需青靠顆顏風食飾麗點龍身黃亮二朋友入伍劍四五腕翼長頸高峽谷玫瑰魔法花園光門夥伴粉碎新能量發喜嗯品對很後想扮把披拿放最歡正漂用皇著藍蝴蝶裝事人來先制口帶序從控故段章走鎖依個再家石進都乾充別孵插敲泡洗淨澡火煙生的直穿蛋電：，·！/0123456789";
         return text.Distinct().Select(c => (int)c).Concat(Enumerable.Range(32, 95)).Distinct().ToArray();
     }
 
