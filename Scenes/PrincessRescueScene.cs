@@ -1081,6 +1081,56 @@ public sealed class PrincessRescueScene : IScene
         return null;
     }
 
+    private void DrawLockedMagicChildren(Vector2 center, float scale)
+    {
+        var frameWidth = 306f * scale;
+        var frameHeight = 190f * scale;
+        var frame = new Rectangle(center.X - frameWidth / 2f, center.Y - frameHeight / 2f, frameWidth, frameHeight);
+
+        Raylib.DrawRectangleRounded(new Rectangle(frame.X + 4 * scale, frame.Y + 7 * scale, frame.Width, frame.Height), 0.14f, 12, new Color(0, 0, 0, 45));
+        Raylib.DrawRectangleRounded(frame, 0.14f, 12, new Color(255, 226, 178, 236));
+        Raylib.DrawRectangleRounded(new Rectangle(frame.X + 10 * scale, frame.Y + 10 * scale, frame.Width - 20 * scale, frame.Height - 20 * scale), 0.12f, 12, new Color(255, 245, 218, 235));
+
+        var childWidth = 78f * scale;
+        var childHeight = 98f * scale;
+        var childY = center.Y + 23f * scale;
+        DrawNamedTexture("magic_child_pink", new Rectangle(center.X - 82f * scale, childY, childWidth, childHeight), Color.White);
+        DrawNamedTexture("magic_child_yellow", new Rectangle(center.X, childY - 2f * scale, childWidth, childHeight), Color.White);
+        DrawNamedTexture("magic_child_blue", new Rectangle(center.X + 82f * scale, childY, childWidth, childHeight), Color.White);
+
+        var barColor = new Color(126, 78, 48, 230);
+        for (var i = -2; i <= 2; i++)
+        {
+            var x = center.X + i * 44f * scale;
+            Raylib.DrawRectangleRounded(new Rectangle(x - 5f * scale, frame.Y + 10f * scale, 10f * scale, frame.Height - 20f * scale), 0.45f, 8, barColor);
+        }
+        Raylib.DrawRectangleRounded(new Rectangle(frame.X + 8f * scale, frame.Y + 12f * scale, frame.Width - 16f * scale, 14f * scale), 0.45f, 8, barColor);
+        Raylib.DrawRectangleRounded(new Rectangle(frame.X + 8f * scale, frame.Y + frame.Height - 26f * scale, frame.Width - 16f * scale, 14f * scale), 0.45f, 8, barColor);
+
+        var lockCenter = center + new Vector2(frameWidth * 0.38f, frameHeight * 0.22f);
+        Raylib.DrawRectangleRounded(new Rectangle(lockCenter.X - 16f * scale, lockCenter.Y - 4f * scale, 32f * scale, 28f * scale), 0.18f, 8, new Color(255, 193, 51, 245));
+        Raylib.DrawCircleLines((int)lockCenter.X, (int)(lockCenter.Y - 8f * scale), (int)(15f * scale), new Color(146, 97, 28, 230));
+        Raylib.DrawCircleV(lockCenter + new Vector2(0, 8f * scale), 4.4f * scale, new Color(116, 76, 24, 240));
+    }
+
+    private void DrawFreeMagicChildren(Vector2 center, float scale)
+    {
+        var bob = MathF.Sin(_time * 5f) * 3f;
+        var width = 88f * scale;
+        var height = 112f * scale;
+
+        DrawNamedTexture("magic_child_pink", new Rectangle(center.X - 76f * scale, center.Y + bob, width, height), Color.White, -4f);
+        DrawNamedTexture("magic_child_yellow", new Rectangle(center.X, center.Y - 5f * scale - bob * 0.35f, width, height), Color.White);
+        DrawNamedTexture("magic_child_blue", new Rectangle(center.X + 76f * scale, center.Y + bob * 0.5f, width, height), Color.White, 4f);
+
+        for (var i = -1; i <= 1; i++)
+        {
+            var sparkle = center + new Vector2(i * 62f * scale, -70f * scale + MathF.Sin(_time * 4f + i) * 4f);
+            Raylib.DrawCircleV(sparkle, 4f * scale, new Color(255, 236, 98, 220));
+            Raylib.DrawCircleLines((int)sparkle.X, (int)sparkle.Y, (int)(8f * scale), new Color(255, 255, 255, 150));
+        }
+    }
+
     private void DrawColorMatchBackdrop()
     {
         for (var y = 0; y < Game.ScreenHeight; y += 8)
@@ -1697,14 +1747,13 @@ public sealed class PrincessRescueScene : IScene
         if (_complete)
         {
             var girlBob = MathF.Sin(_time * 5f) * 7f;
-            GeneratedSprites.TryDraw(_game.Assets, RescueSprite.PrincessFree, new Rectangle(_housePosition.X + 154, _housePosition.Y + 82 + girlBob, 128, 128), Color.White);
-            GeneratedSprites.TryDraw(_game.Assets, RescueSprite.PrincessFriends, new Rectangle(_housePosition.X - 18, _housePosition.Y + 136 + girlBob * 0.4f, 126, 106), Color.White);
+            DrawFreeMagicChildren(_housePosition + new Vector2(154, 110 + girlBob), 0.72f);
             GeneratedSprites.TryDrawFinal(_game.Assets, FinalSprite.WitchDefeated, new Rectangle(_housePosition.X - 150, _housePosition.Y + 92, 128, 128), Color.White, MathF.Sin(_time * 6f) * 5f);
         }
         else
         {
             GeneratedSprites.TryDraw(_game.Assets, RescueSprite.Witch, new Rectangle(_housePosition.X + 114, _housePosition.Y + 54, 118, 118), Color.White, MathF.Sin(_time * 4f) * 3f);
-            GeneratedSprites.TryDraw(_game.Assets, RescueSprite.PrincessCaged, new Rectangle(_housePosition.X - 128, _housePosition.Y + 70, 126, 126), Color.White);
+            DrawNamedTexture("story_children_locked_crying", new Rectangle(_housePosition.X - 128, _housePosition.Y + 74, 156, 108), Color.White);
         }
 
         if (_powered && !_complete && Vector2.Distance(_princessPosition, _housePosition) <= 180f)
@@ -1724,7 +1773,7 @@ public sealed class PrincessRescueScene : IScene
         {
             DrawMagicBarrier(progress, impactPulse);
             GeneratedSprites.TryDraw(_game.Assets, RescueSprite.Witch, new Rectangle(_housePosition.X + 124, _housePosition.Y + 36, 116, 116), Color.White, MathF.Sin(_time * 4f) * 3f);
-            GeneratedSprites.TryDraw(_game.Assets, RescueSprite.PrincessCaged, new Rectangle(_housePosition.X - 108, _housePosition.Y + 62, 116, 116), Color.White);
+            DrawLockedMagicChildren(_housePosition + new Vector2(-108, 68), 0.46f);
         }
         else
         {

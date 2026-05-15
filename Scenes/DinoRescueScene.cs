@@ -321,9 +321,10 @@ public sealed class DinoRescueScene : IScene
         switch (CurrentMode)
         {
             case DinoTapMode.Charge:
-                _particles.EmitStars(focus + new Vector2(0, -35), 8);
-                _particles.EmitSparkle(focus + new Vector2(0, -80), 3);
-                AddTapBurst(focus + new Vector2(0, -42), 96f, 0.48f);
+                var chargeSlot = ChargeVehiclePosition((_hits - 1) % _vehicles.Length);
+                _particles.EmitStars(chargeSlot + new Vector2(0, -40), 8);
+                _particles.EmitSparkle(chargeSlot + new Vector2(0, -84), 3);
+                AddTapBurst(chargeSlot + new Vector2(0, -42), 96f, 0.48f);
                 if (_hits == 1) _floatingTexts.Spawn("開始充電!", focus + new Vector2(0, -148), new Color(77, 167, 224, 255), 34f, 1.4f);
                 break;
             case DinoTapMode.Wash:
@@ -537,10 +538,26 @@ public sealed class DinoRescueScene : IScene
         var impact = Math.Clamp(_hitAnimTimer / 0.34f, 0f, 1f);
         var impactPulse = MathF.Sin(impact * MathF.PI);
 
-        Raylib.DrawEllipse((int)focus.X, (int)(focus.Y + 164), 170, 20, new Color(0, 0, 0, 55));
-        DrawNamedTexture("tap_poli_charger", new Rectangle(focus.X + 84, focus.Y + 30 - impactPulse * 6f, 220 + impactPulse * 16f, 235 + impactPulse * 16f), Color.White);
-        DrawNamedTexture("tap_battery", new Rectangle(focus.X - 140, focus.Y - 86, 205, 120), new Color(255, 255, 255, 185));
-        GeneratedSprites.TryDraw(_game.Assets, RescueSprite.Poli, new Rectangle(focus.X - 155, focus.Y + 92 + pulse * 3f, 158, 158), Color.White, MathF.Sin(_time * 6f) * 2f);
+        DrawNamedTexture("tap_battery", new Rectangle(focus.X, focus.Y - 176, 250, 146), new Color(255, 255, 255, 210));
+
+        for (var i = 0; i < _vehicles.Length; i++)
+        {
+            var vehicle = _vehicles[i];
+            var slot = ChargeVehiclePosition(i);
+            var bob = MathF.Sin(_time * 6f + vehicle.Phase) * 4f;
+            var slotPulse = (MathF.Sin(_time * 5.5f + vehicle.Phase) + 1f) * 0.5f;
+            var chargerSize = 142f + impactPulse * 10f + slotPulse * 4f;
+            var vehicleSize = vehicle.Size * 0.95f + impactPulse * 8f;
+
+            Raylib.DrawEllipse((int)slot.X, (int)(slot.Y + 130), 96, 16, new Color(0, 0, 0, 52));
+            DrawNamedTexture("tap_poli_charger", new Rectangle(slot.X + 38, slot.Y + 6 - impactPulse * 5f, chargerSize, chargerSize), new Color(255, 255, 255, 235));
+            Raylib.DrawLineEx(slot + new Vector2(26, 74), slot + new Vector2(-32, 94 + bob), 5f, new Color(255, 226, 82, 190));
+            GeneratedSprites.TryDraw(_game.Assets, vehicle.Sprite, new Rectangle(slot.X - 54, slot.Y + 100 + bob, vehicleSize, vehicleSize), Color.White, MathF.Sin(_time * 5f + vehicle.Phase) * 2.2f);
+            DrawVehicleName(vehicle.Name, slot + new Vector2(-54, 146));
+
+            Raylib.DrawCircleV(slot + new Vector2(2, -18), 32f + slotPulse * 8f, new Color(255, 226, 82, 42));
+            Raylib.DrawCircleLines((int)(slot.X + 2), (int)(slot.Y - 18), (int)(38f + slotPulse * 8f), new Color(255, 255, 255, 120));
+        }
 
         var bar = new Rectangle(focus.X - 184, focus.Y + 210, 368, 28);
         Raylib.DrawRectangleRounded(bar, 0.45f, 10, new Color(255, 255, 255, 235));
@@ -553,6 +570,17 @@ public sealed class DinoRescueScene : IScene
             var p = focus + new Vector2(MathF.Cos(angle) * (110f + pulse * 12f), MathF.Sin(angle) * 72f);
             Raylib.DrawCircleV(p, 5f + pulse * 2f, new Color(255, 226, 82, 205));
         }
+    }
+
+    private static Vector2 ChargeVehiclePosition(int index)
+    {
+        return index switch
+        {
+            0 => new Vector2(660, 350),
+            1 => new Vector2(830, 292),
+            2 => new Vector2(1000, 350),
+            _ => new Vector2(1140, 292),
+        };
     }
 
     private void DrawWashEvent()
@@ -783,6 +811,8 @@ public sealed class DinoRescueScene : IScene
 
     private void DrawVehicles()
     {
+        if (CurrentMode == DinoTapMode.Charge) return;
+
         var rescueMode = CurrentMode == DinoTapMode.Rescue;
         var eased = rescueMode ? SmoothStep(Progress) : 0f;
         var active = rescueMode && _hits > 0 && !_complete;
